@@ -1,3 +1,5 @@
-from django.shortcuts import render
+# products/views.py
+from django.http import JsonResponse
 
-# Create your views here.
+def test_view(request):
+    return JsonResponse({'message': 'Products API is working!'})

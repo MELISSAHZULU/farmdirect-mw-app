@@ -1,3 +1,5 @@
-from django.shortcuts import render
+# users/views.py
+from django.http import JsonResponse
 
-# Create your views here.
+def test_view(request):
+    return JsonResponse({'message': 'Users API is working!'})

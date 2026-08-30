@@ -1,3 +1,5 @@
-from django.shortcuts import render
+# farmers/views.py
+from django.http import JsonResponse
 
-# Create your views here.
+def test_view(request):
+    return JsonResponse({'message': 'Farmers API is working!'})
