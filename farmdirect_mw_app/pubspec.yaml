@@ -28,14 +28,8 @@ dependencies:
   # Toast notifications
   fluttertoast: ^8.2.4
 
-  # Form validation
-  flutter_form_builder: ^9.1.0
-
-  # Navigation
-  go_router: ^13.0.1
-
-  # Pull to refresh
-  flutter_refresh: ^0.3.0
+  # Pull to refresh (REPLACED)
+  flutter_easyrefresh: ^2.2.2
 
   # For handling Date/Time formatting
   intl: ^0.18.1
@@ -46,21 +40,10 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
   flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
-
-  # Assets
   assets:
     - assets/images/
     - assets/fonts/
-
-  # Fonts (optional - uncomment if you add custom fonts)
-  # fonts:
-  #   - family: Inter
-  #     fonts:
-  #       - asset: assets/fonts/Inter-Regular.ttf
-  #       - asset: assets/fonts/Inter-Bold.ttf
-  #         weight: 700
