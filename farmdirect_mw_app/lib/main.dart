@@ -7,6 +7,7 @@ import 'screens/home_screen.dart';
 import 'screens/product_detail_screen.dart';
 import 'screens/cart_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/orders_screen.dart';  // ← ADD THIS IMPORT
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
 
@@ -57,6 +58,7 @@ class MyApp extends StatelessWidget {
             return ProductDetailScreen(productId: args);
           },
           '/cart': (context) => const CartScreen(),
+          '/orders': (context) => const OrdersScreen(),  // ← ADD THIS
           '/profile': (context) => const ProfileScreen(),
         },
       ),

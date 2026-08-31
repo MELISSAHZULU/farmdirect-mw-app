@@ -187,12 +187,20 @@ class _HomeScreenState extends State<HomeScreen> {
         unselectedItemColor: Colors.grey[500],
         onTap: (index) {
           setState(() => _selectedIndex = index);
-          if (index == 1) {
-            // Search
+          if (index == 0) {
+            // Already on Home
+          } else if (index == 1) {
+            // Search - coming soon
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Search coming soon!'),
+                duration: Duration(seconds: 1),
+              ),
+            );
           } else if (index == 2) {
             Navigator.pushNamed(context, '/cart');
           } else if (index == 3) {
-            // Orders
+            Navigator.pushNamed(context, '/orders');
           } else if (index == 4) {
             Navigator.pushNamed(context, '/profile');
           }
@@ -607,7 +615,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Price with unit - UPDATED
                         Text(
                           '${product.displayPrice}/${product.unit}',
                           style: const TextStyle(

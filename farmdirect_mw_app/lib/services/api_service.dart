@@ -1,4 +1,3 @@
-// lib/services/api_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/product.dart';
@@ -76,26 +75,28 @@ class ApiService {
         headers: headers,
       );
 
-      print('📡 Products Status: ${response.statusCode}');
-      print('📝 Products Response: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}...');
-
       if (response.statusCode == 200) {
         final dynamic data = jsonDecode(response.body);
-        
-        // Check if data is a list
         if (data is List) {
-          print('✅ Products list length: ${data.length}');
-          return data.map((item) => Product.fromJson(item)).toList();
-        } else {
-          print('❌ Response is not a list: ${data.runtimeType}');
-          return [];
+          return data.map((item) {
+            // Parse string prices to double
+            if (item['price'] is String) {
+              item['price'] = double.tryParse(item['price'] as String) ?? 0.0;
+            }
+            if (item['min_price'] is String) {
+              item['min_price'] = double.tryParse(item['min_price'] as String);
+            }
+            if (item['max_price'] is String) {
+              item['max_price'] = double.tryParse(item['max_price'] as String);
+            }
+            return Product.fromJson(item);
+          }).toList();
         }
+        return [];
       } else {
-        print('❌ Failed to load products: ${response.statusCode}');
         return [];
       }
     } catch (e) {
-      print('❌ Get Products Error: $e');
       return [];
     }
   }
@@ -107,13 +108,45 @@ class ApiService {
     );
 
     if (response.statusCode == 200) {
-      return Product.fromJson(jsonDecode(response.body));
+      final data = jsonDecode(response.body);
+      // Parse string prices to double
+      if (data['price'] is String) {
+        data['price'] = double.tryParse(data['price'] as String) ?? 0.0;
+      }
+      if (data['min_price'] is String) {
+        data['min_price'] = double.tryParse(data['min_price'] as String);
+      }
+      if (data['max_price'] is String) {
+        data['max_price'] = double.tryParse(data['max_price'] as String);
+      }
+      return Product.fromJson(data);
     } else {
       throw Exception('Failed to load product');
     }
   }
 
   // ============ ORDERS ============
+
+  static Future<List<Order>> getOrders() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/orders/'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final dynamic data = jsonDecode(response.body);
+        if (data is List) {
+          return data.map((item) => Order.fromJson(item)).toList();
+        }
+        return [];
+      } else {
+        return [];
+      }
+    } catch (e) {
+      return [];
+    }
+  }
 
   static Future<Map<String, dynamic>> createOrder({
     required String deliveryArea,
