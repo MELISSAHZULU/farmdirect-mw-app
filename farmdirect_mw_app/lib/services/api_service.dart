@@ -5,7 +5,15 @@ import '../models/order.dart';
 import '../models/user.dart';
 
 class ApiService {
+  // For Chrome web on same machine
   static const String baseUrl = 'http://localhost:8000/api';
+  
+  // For physical device testing, use your computer's IP:
+  // static const String baseUrl = 'http://10.199.199.249:8000/api';
+  
+  // For Android emulator:
+  // static const String baseUrl = 'http://10.0.2.2:8000/api';
+  
   static String? _authToken;
 
   static void setAuthToken(String token) { _authToken = token; }
@@ -19,7 +27,7 @@ class ApiService {
     return headers;
   }
 
-  // ============ AUTH ============
+  // ============ AUTHENTICATION ============
 
   static Future<Map<String, dynamic>> register({
     required String phone,
@@ -170,6 +178,25 @@ class ApiService {
       return jsonDecode(response.body);
     } catch (e) {
       return {'error': 'Network error: $e'};
+    }
+  }
+
+  // ============ FARMERS ============
+
+  static Future<List<dynamic>> getFarmers() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/farmers/'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return [];
+      }
+    } catch (e) {
+      return [];
     }
   }
 }

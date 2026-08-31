@@ -7,9 +7,10 @@ import 'screens/home_screen.dart';
 import 'screens/product_detail_screen.dart';
 import 'screens/cart_screen.dart';
 import 'screens/profile_screen.dart';
-import 'screens/orders_screen.dart';  // ← ADD THIS IMPORT
+import 'screens/orders_screen.dart';  
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
+import 'screens/search_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -53,6 +54,7 @@ class MyApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
           '/home': (context) => const HomeScreen(),
+          '/search': (context) => const SearchScreen(),
           '/product-detail': (context) {
             final args = ModalRoute.of(context)!.settings.arguments as int;
             return ProductDetailScreen(productId: args);

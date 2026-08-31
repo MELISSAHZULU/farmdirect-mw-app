@@ -22,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   String _selectedCategory = 'All';
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   final List<String> _categories = const [
     'All',
@@ -44,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -190,13 +192,8 @@ class _HomeScreenState extends State<HomeScreen> {
           if (index == 0) {
             // Already on Home
           } else if (index == 1) {
-            // Search - coming soon
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Search coming soon!'),
-                duration: Duration(seconds: 1),
-              ),
-            );
+            // Navigate to search screen
+            Navigator.pushNamed(context, '/search');
           } else if (index == 2) {
             Navigator.pushNamed(context, '/cart');
           } else if (index == 3) {
@@ -378,10 +375,20 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: TextField(
                 controller: _searchController,
+                focusNode: _searchFocusNode,
                 decoration: InputDecoration(
                   hintText: 'Search tomatoes, onions, rape...',
                   hintStyle: TextStyle(color: Colors.grey[400]),
                   prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            _filterProducts();
+                          },
+                        )
+                      : null,
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
