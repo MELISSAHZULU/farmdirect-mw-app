@@ -126,9 +126,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Helper to get safe length
-  int get safeProductCount => _filteredProducts.length;
-
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -461,12 +458,12 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             children: [
               Icon(Icons.inbox, size: 60, color: Colors.grey),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Text(
                 'No products found',
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 'Try adjusting your search',
                 style: TextStyle(fontSize: 14, color: Colors.grey),
@@ -519,6 +516,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Product Image Placeholder
             Expanded(
               flex: 2,
               child: ClipRRect(
@@ -563,6 +561,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+            // Product Info
             Expanded(
               flex: 1,
               child: Padding(
@@ -576,18 +575,27 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           product.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Row(
                           children: [
-                            const Text('🌱 ', style: TextStyle(fontSize: 10)),
+                            const Text(
+                              '🌱 ',
+                              style: TextStyle(fontSize: 10),
+                            ),
                             Expanded(
                               child: Text(
                                 product.farmerName,
-                                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey[600],
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -599,8 +607,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        // Price with unit - UPDATED
                         Text(
-                          product.displayPrice,
+                          '${product.displayPrice}/${product.unit}',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -624,7 +633,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: const Color(0xFF2E7D32),
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            child: const Icon(Icons.add, color: Colors.white, size: 20),
+                            child: const Icon(
+                              Icons.add,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                         ),
                       ],
