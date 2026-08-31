@@ -1,7 +1,8 @@
+// lib/models/product.dart
 class Product {
   final int id;
   final String name;
-  final String? category;
+  final int? category;
   final String categoryName;
   final String unit;
   final double price;
@@ -13,6 +14,7 @@ class Product {
   final int? farmerId;
   final String farmerName;
   final bool isActive;
+  final String createdAt;
 
   Product({
     required this.id,
@@ -29,24 +31,35 @@ class Product {
     this.farmerId,
     required this.farmerName,
     required this.isActive,
+    required this.createdAt,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
+    // Helper function to safely parse price
+    double parsePrice(dynamic value) {
+      if (value == null) return 0.0;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? 0.0;
+      return 0.0;
+    }
+
     return Product(
-      id: json['id'],
-      name: json['name'] ?? '',
+      id: json['id'] ?? 0,
+      name: json['name'] ?? 'Unknown Product',
       category: json['category'],
-      categoryName: json['category_name'] ?? '',
+      categoryName: json['category_name'] ?? 'Uncategorized',
       unit: json['unit'] ?? 'kg',
-      price: (json['price'] ?? 0).toDouble(),
-      minPrice: json['min_price']?.toDouble(),
-      maxPrice: json['max_price']?.toDouble(),
+      price: parsePrice(json['price']),
+      minPrice: json['min_price'] != null ? parsePrice(json['min_price']) : null,
+      maxPrice: json['max_price'] != null ? parsePrice(json['max_price']) : null,
       hasVariants: json['has_variants'] ?? false,
       imageUrl: json['image_url'],
       description: json['description'],
       farmerId: json['farmer'],
-      farmerName: json['farmer_name'] ?? 'Unknown Farmer',
+      farmerName: json['farmer_name'] ?? 'Local Farmer',
       isActive: json['is_active'] ?? true,
+      createdAt: json['created_at'] ?? '',
     );
   }
 
@@ -55,5 +68,25 @@ class Product {
       return 'K${minPrice!.toInt()} - K${maxPrice!.toInt()}';
     }
     return 'K${price.toInt()}';
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'category': category,
+      'category_name': categoryName,
+      'unit': unit,
+      'price': price,
+      'min_price': minPrice,
+      'max_price': maxPrice,
+      'has_variants': hasVariants,
+      'image_url': imageUrl,
+      'description': description,
+      'farmer': farmerId,
+      'farmer_name': farmerName,
+      'is_active': isActive,
+      'created_at': createdAt,
+    };
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
 import '../services/api_service.dart';
@@ -31,16 +33,66 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
+      print('🔄 Loading products...');
       final products = await ApiService.getProducts();
+      print('✅ Products loaded: ${products.length}');
+
       setState(() {
         _products = products;
         _isLoading = false;
       });
     } catch (e) {
+      print('❌ Error loading products: $e');
       setState(() {
-        _error = 'Failed to load products: $e';
+        _error = 'Failed to load products';
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _testApiDirectly() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:8000/api/products/'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      print('📡 Direct API Test Status: ${response.statusCode}');
+      print('📝 Direct API Test Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is List) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ API OK: ${data.length} products found'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('⚠️ API returned unexpected data'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ API Error: ${response.statusCode}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Direct API Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ API Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -55,12 +107,44 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: const Color(0xFF2E7D32),
         foregroundColor: Colors.white,
         actions: [
+          // API Test Button
           IconButton(
-            icon: Badge(
-              label: Text('${cartProvider.itemCount}'),
-              child: const Icon(Icons.shopping_cart),
-            ),
-            onPressed: () => Navigator.pushNamed(context, '/cart'),
+            icon: const Icon(Icons.bug_report),
+            onPressed: _testApiDirectly,
+          ),
+          // Cart counter
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.shopping_cart),
+                onPressed: () => Navigator.pushNamed(context, '/cart'),
+              ),
+              if (cartProvider.itemCount > 0)
+                Positioned(
+                  right: 4,
+                  top: 4,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
+                    child: Text(
+                      '${cartProvider.itemCount}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
           ),
           IconButton(
             icon: const Icon(Icons.logout),
@@ -80,25 +164,52 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(_error),
+                      Icon(Icons.error_outline, size: 60, color: Colors.red[300]),
+                      const SizedBox(height: 16),
+                      Text(
+                        _error,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 16),
+                      ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadProducts,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2E7D32),
+                        ),
                         child: const Text('Retry'),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: _testApiDirectly,
+                        child: const Text('Test API'),
                       ),
                     ],
                   ),
                 )
               : _products.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.inbox, size: 80, color: Colors.grey),
-                          SizedBox(height: 16),
+                          Icon(Icons.inbox, size: 80, color: Colors.grey[400]),
+                          const SizedBox(height: 16),
                           Text(
                             'No products available',
-                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Click the bug icon to test API',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _loadProducts,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2E7D32),
+                            ),
+                            child: const Text('Refresh'),
                           ),
                         ],
                       ),
@@ -166,11 +277,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                 child: Container(
                   width: double.infinity,
-                  color: Colors.grey[200],
+                  color: Colors.green[50],
                   child: Center(
                     child: Text(
                       product.name[0].toUpperCase(),
-                      style: const TextStyle(fontSize: 40, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green[300],
+                      ),
                     ),
                   ),
                 ),

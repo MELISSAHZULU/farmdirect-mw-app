@@ -6,7 +6,6 @@ import '../models/order.dart';
 import '../models/user.dart';
 
 class ApiService {
-  // Use your IP address for physical device testing
   static const String baseUrl = 'http://localhost:8000/api';
   static String? _authToken;
 
@@ -77,13 +76,26 @@ class ApiService {
         headers: headers,
       );
 
+      print('📡 Products Status: ${response.statusCode}');
+      print('📝 Products Response: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}...');
+
       if (response.statusCode == 200) {
-        final List data = jsonDecode(response.body);
-        return data.map((item) => Product.fromJson(item)).toList();
+        final dynamic data = jsonDecode(response.body);
+        
+        // Check if data is a list
+        if (data is List) {
+          print('✅ Products list length: ${data.length}');
+          return data.map((item) => Product.fromJson(item)).toList();
+        } else {
+          print('❌ Response is not a list: ${data.runtimeType}');
+          return [];
+        }
       } else {
+        print('❌ Failed to load products: ${response.statusCode}');
         return [];
       }
     } catch (e) {
+      print('❌ Get Products Error: $e');
       return [];
     }
   }
@@ -98,6 +110,33 @@ class ApiService {
       return Product.fromJson(jsonDecode(response.body));
     } else {
       throw Exception('Failed to load product');
+    }
+  }
+
+  // ============ ORDERS ============
+
+  static Future<Map<String, dynamic>> createOrder({
+    required String deliveryArea,
+    required String deliveryAddress,
+    required String deliveryDate,
+    required String paymentMethod,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/orders/create/'),
+        headers: headers,
+        body: jsonEncode({
+          'delivery_area': deliveryArea,
+          'delivery_address': deliveryAddress,
+          'delivery_date': deliveryDate,
+          'payment_method': paymentMethod,
+          'items': items,
+        }),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'error': 'Network error: $e'};
     }
   }
 }
