@@ -3,7 +3,6 @@ from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
 
-# Simple home page view to confirm API is working
 def api_home(request):
     return JsonResponse({
         'message': 'Welcome to FarmDirect MW API',
@@ -11,10 +10,10 @@ def api_home(request):
         'status': 'running',
         'endpoints': {
             'admin': '/admin/',
-            'api_auth': '/api/auth/',
-            'api_products': '/api/products/',
-            'api_orders': '/api/orders/',
-            'api_farmers': '/api/farmers/',
+            'auth': '/api/auth/',
+            'products': '/api/products/',
+            'orders': '/api/orders/',
+            'farmers': '/api/farmers/',
         }
     })
 

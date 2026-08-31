@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/product_detail_screen.dart';
+import 'screens/cart_screen.dart';
+import 'screens/profile_screen.dart';
 import 'providers/auth_provider.dart';
+import 'providers/cart_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,8 +19,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => AuthProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+      ],
       child: MaterialApp(
         title: 'FarmDirect MW',
         debugShowCheckedModeBanner: false,
@@ -28,6 +36,9 @@ class MyApp extends StatelessWidget {
             backgroundColor: Color(0xFF2E7D32),
             foregroundColor: Colors.white,
           ),
+          bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+            selectedItemColor: Color(0xFF2E7D32),
+          ),
         ),
         initialRoute: '/',
         routes: {
@@ -36,11 +47,17 @@ class MyApp extends StatelessWidget {
             if (authProvider.isAuthenticated) {
               return const HomeScreen();
             }
-            return const LoginScreen();
+            return const SplashScreen();
           },
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
           '/home': (context) => const HomeScreen(),
+          '/product-detail': (context) {
+            final args = ModalRoute.of(context)!.settings.arguments as int;
+            return ProductDetailScreen(productId: args);
+          },
+          '/cart': (context) => const CartScreen(),
+          '/profile': (context) => const ProfileScreen(),
         },
       ),
     );

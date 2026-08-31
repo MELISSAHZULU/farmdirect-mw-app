@@ -1,7 +1,10 @@
 # orders/urls.py
 from django.urls import path
-from .views import test_view
+from .views import OrderListView, OrderCreateView, OrderDetailView, OrderCancelView
 
 urlpatterns = [
-    path('', test_view, name='orders-test'),
+    path('', OrderListView.as_view(), name='order-list'),
+    path('create/', OrderCreateView.as_view(), name='order-create'),
+    path('<int:id>/', OrderDetailView.as_view(), name='order-detail'),
+    path('<int:id>/cancel/', OrderCancelView.as_view(), name='order-cancel'),
 ]
