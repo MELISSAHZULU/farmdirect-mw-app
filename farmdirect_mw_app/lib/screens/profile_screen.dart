@@ -311,14 +311,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: Icons.help_outline,
                         title: 'Help & Support',
                         subtitle: 'FAQs, contact us',
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Help & Support coming soon!'),
-                              backgroundColor: Color(0xFF2E7D32),
-                            ),
-                          );
-                        },
+                        onTap: () => Navigator.pushNamed(context, '/help-support'),
                       ),
                       const SizedBox(height: 24),
 

@@ -11,10 +11,11 @@ class CartScreen extends StatelessWidget {
     final cartProvider = Provider.of<CartProvider>(context);
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(
-          'Your Cart',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          'Your Cart (${cartProvider.itemCount} items)',
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: const Color(0xFF2E7D32),
         foregroundColor: Colors.white,
@@ -24,23 +25,93 @@ class CartScreen extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.delete_outline),
               onPressed: () {
-                cartProvider.clearCart();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Cart cleared'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                _showClearCartDialog(context, cartProvider);
               },
             ),
         ],
       ),
       body: cartProvider.itemCount == 0
           ? _buildEmptyCart(context)
-          : _buildCartWithItems(context, cartProvider),
-      bottomNavigationBar: cartProvider.itemCount > 0
-          ? _buildCheckoutBottomBar(context, cartProvider)
-          : null,
+          : Column(
+              children: [
+                // Minimum Order Progress
+                _buildMinimumOrderProgress(cartProvider),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: cartProvider.items.length,
+                    itemBuilder: (context, index) {
+                      final item = cartProvider.items[index];
+                      return _buildCartItem(item, cartProvider);
+                    },
+                  ),
+                ),
+                _buildCheckoutBottomBar(context, cartProvider),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildMinimumOrderProgress(CartProvider cartProvider) {
+    final total = cartProvider.totalPrice;
+    final minOrder = 20000.0;
+    final progress = total >= minOrder ? 1.0 : total / minOrder;
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: total >= minOrder ? Colors.green[50] : Colors.orange[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: total >= minOrder ? Colors.green[200]! : Colors.orange[200]!,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            total >= minOrder ? Icons.check_circle : Icons.info_outline,
+            color: total >= minOrder ? Colors.green : Colors.orange,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  total >= minOrder
+                      ? '✅ Minimum order reached!'
+                      : '⚠️ Minimum order is K20,000',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: total >= minOrder ? Colors.green[700] : Colors.orange[700],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress > 1 ? 1 : progress,
+                    backgroundColor: Colors.grey[200],
+                    color: total >= minOrder ? Colors.green : Colors.orange,
+                    minHeight: 4,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'K${total.toInt()} / K${minOrder.toInt()}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -49,7 +120,6 @@ class CartScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Empty cart icon
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -58,12 +128,11 @@ class CartScreen extends StatelessWidget {
             ),
             child: Icon(
               Icons.shopping_cart_outlined,
-              size: 80,
+              size: 64,
               color: Colors.grey[400],
             ),
           ),
           const SizedBox(height: 24),
-          // Title
           const Text(
             'Your cart is empty',
             style: TextStyle(
@@ -73,7 +142,6 @@ class CartScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          // Subtitle
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(
@@ -86,13 +154,11 @@ class CartScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 32),
-          // Browse Products Button
           SizedBox(
             width: 200,
             height: 50,
             child: ElevatedButton(
               onPressed: () {
-                // Navigate to home screen and reset bottom nav to home
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   '/home',
@@ -120,23 +186,6 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCartWithItems(BuildContext context, CartProvider cartProvider) {
-    return Column(
-      children: [
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: cartProvider.items.length,
-            itemBuilder: (context, index) {
-              final item = cartProvider.items[index];
-              return _buildCartItem(item, cartProvider);
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildCartItem(CartItem item, CartProvider cartProvider) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -147,7 +196,7 @@ class CartScreen extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            // Product Image Placeholder
+            // Product Image
             Container(
               width: 60,
               height: 60,
@@ -195,42 +244,56 @@ class CartScreen extends StatelessWidget {
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF2E7D32),
+                      fontSize: 14,
                     ),
                   ),
                 ],
               ),
             ),
-            // Quantity Controls
-            Row(
+            // Quantity Controls with Total
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.remove_circle_outline),
-                  onPressed: () {
-                    if (item.quantity > 1) {
-                      cartProvider.updateQuantity(
-                        item.product.id,
-                        item.quantity - 1,
-                      );
-                    } else {
-                      cartProvider.removeItem(item.product.id);
-                    }
-                  },
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline),
+                      onPressed: () {
+                        if (item.quantity > 1) {
+                          cartProvider.updateQuantity(
+                            item.product.id,
+                            item.quantity - 1,
+                          );
+                        } else {
+                          cartProvider.removeItem(item.product.id);
+                        }
+                      },
+                    ),
+                    Text(
+                      '${item.quantity}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline),
+                      onPressed: () {
+                        cartProvider.updateQuantity(
+                          item.product.id,
+                          item.quantity + 1,
+                        );
+                      },
+                    ),
+                  ],
                 ),
                 Text(
-                  '${item.quantity}',
+                  'K${(item.product.price * item.quantity).toInt()}',
                   style: const TextStyle(
-                    fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Color(0xFF2E7D32),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add_circle_outline),
-                  onPressed: () {
-                    cartProvider.updateQuantity(
-                      item.product.id,
-                      item.quantity + 1,
-                    );
-                  },
                 ),
               ],
             ),
@@ -260,49 +323,77 @@ class CartScreen extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Subtotal
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Total',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  Text(
-                    'K${totalPrice.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2E7D32),
-                    ),
-                  ),
-                ],
+              Text(
+                'Subtotal ($itemCount items)',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              Text(
+                'K${totalPrice.toInt()}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          // Delivery
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
                 children: [
+                  const Icon(
+                    Icons.local_shipping,
+                    size: 16,
+                    color: Color(0xFF2E7D32),
+                  ),
+                  const SizedBox(width: 4),
                   Text(
-                    '$itemCount items',
+                    'Delivery',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
                     ),
                   ),
-                  if (!isMinimumMet)
-                    Text(
-                      'Minimum K20,000 required',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.red[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
                 ],
+              ),
+              const Text(
+                'FREE',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2E7D32),
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 16),
+          // Total
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                'K${totalPrice.toInt()}',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2E7D32),
+                ),
               ),
             ],
           ),
@@ -313,13 +404,7 @@ class CartScreen extends StatelessWidget {
             child: ElevatedButton(
               onPressed: isMinimumMet
                   ? () {
-                      // Navigate to checkout
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Checkout coming soon!'),
-                          backgroundColor: Color(0xFF2E7D32),
-                        ),
-                      );
+                      Navigator.pushNamed(context, '/checkout');
                     }
                   : null,
               style: ElevatedButton.styleFrom(
@@ -339,6 +424,38 @@ class CartScreen extends StatelessWidget {
                   color: isMinimumMet ? Colors.white : Colors.grey[600],
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showClearCartDialog(BuildContext context, CartProvider cartProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Cart?'),
+        content: const Text('This will remove all items from your cart.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              cartProvider.clearCart();
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Cart cleared'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            },
+            child: const Text(
+              'Clear All',
+              style: TextStyle(color: Colors.red),
             ),
           ),
         ],

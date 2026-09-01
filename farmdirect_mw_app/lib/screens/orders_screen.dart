@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
-import '../services/api_service.dart';
 import '../models/order.dart';
+import '../services/api_service.dart';
+import '../providers/cart_provider.dart';
+import '../providers/auth_provider.dart';
+import '../widgets/bottom_nav.dart';
+import 'order_detail_screen.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -15,10 +18,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
   List<Order> _orders = [];
   bool _isLoading = true;
   String _error = '';
+  bool _isReordering = false;
 
   @override
   void initState() {
     super.initState();
+    _loadOrders();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _loadOrders();
   }
 
@@ -55,16 +65,29 @@ class _OrdersScreenState extends State<OrdersScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          TextButton(
+          IconButton(
+            icon: const Icon(Icons.refresh),
             onPressed: _loadOrders,
-            child: const Text(
-              'Refresh',
-              style: TextStyle(color: Colors.white),
-            ),
           ),
         ],
       ),
       body: _buildBody(),
+      bottomNavigationBar: CustomBottomNav(
+        currentIndex: 3,
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+          } else if (index == 1) {
+            Navigator.pushNamed(context, '/search');
+          } else if (index == 2) {
+            Navigator.pushNamed(context, '/cart');
+          } else if (index == 3) {
+            _loadOrders();
+          } else if (index == 4) {
+            Navigator.pushNamed(context, '/profile');
+          }
+        },
+      ),
     );
   }
 
@@ -190,7 +213,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   Widget _buildOrderCard(Order order) {
-    // Get status color
     Color statusColor;
     switch (order.status) {
       case 'delivered':
@@ -215,12 +237,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
         statusColor = Colors.grey;
     }
 
-    // Format date
     String displayDate = order.createdAt.isNotEmpty
         ? order.createdAt.substring(0, 10)
         : 'N/A';
 
-    // Count items
     int itemCount = order.items.length;
 
     return Card(
@@ -281,11 +301,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ],
             ),
             const Divider(height: 24),
-            // Order Items
+            // Order Summary
             Row(
               children: [
                 Expanded(
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
@@ -304,11 +325,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      // Show first item name
+                      const SizedBox(height: 4),
                       if (order.items.isNotEmpty)
                         Text(
-                          order.items.first.productId.toString(),
+                          order.items.first.productName ?? '${order.items.first.productId}',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[500],
@@ -348,13 +368,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
-                      // Navigate to order details
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Order details coming soon!'),
-                          backgroundColor: Color(0xFF2E7D32),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => OrderDetailScreen(orderId: order.id),
                         ),
-                      );
+                      ).then((_) {
+                        _loadOrders();
+                      });
                     },
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: Colors.grey[300]!),
@@ -368,16 +389,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: order.status == 'delivered'
-                        ? () {
-                            // Reorder
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Reorder functionality coming soon!'),
-                                backgroundColor: Color(0xFF2E7D32),
-                              ),
-                            );
-                          }
+                    onPressed: order.status == 'delivered' && !_isReordering
+                        ? () => _reorderItems(order)
                         : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2E7D32),
@@ -386,14 +399,23 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       ),
                       disabledBackgroundColor: Colors.grey[300],
                     ),
-                    child: Text(
-                      'Reorder',
-                      style: TextStyle(
-                        color: order.status == 'delivered'
-                            ? Colors.white
-                            : Colors.grey[600],
-                      ),
-                    ),
+                    child: _isReordering
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Text(
+                            'Reorder',
+                            style: TextStyle(
+                              color: order.status == 'delivered'
+                                  ? Colors.white
+                                  : Colors.grey[600],
+                            ),
+                          ),
                   ),
                 ),
               ],
@@ -402,5 +424,71 @@ class _OrdersScreenState extends State<OrdersScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _reorderItems(Order order) async {
+    setState(() => _isReordering = true);
+
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    
+    // Show loading snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('🔄 Adding items to cart...'),
+        backgroundColor: Color(0xFF2E7D32),
+        duration: Duration(seconds: 1),
+      ),
+    );
+
+    int addedCount = 0;
+    int failedCount = 0;
+
+    for (var item in order.items) {
+      try {
+        // Fetch the full product details
+        final product = await ApiService.getProduct(item.productId);
+        
+        // Add to cart with the quantity from the order
+        cartProvider.addItem(
+          product,
+          quantity: item.quantity.toInt(),
+        );
+        addedCount++;
+      } catch (e) {
+        print('❌ Failed to add product ${item.productId}: $e');
+        failedCount++;
+      }
+    }
+
+    setState(() => _isReordering = false);
+
+    if (mounted) {
+      if (addedCount > 0 && failedCount == 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Added $addedCount items to cart!'),
+            backgroundColor: const Color(0xFF2E7D32),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        // Navigate to cart
+        Navigator.pushNamed(context, '/cart');
+      } else if (addedCount > 0 && failedCount > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('⚠️ Added $addedCount items, $failedCount failed'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ Failed to reorder items. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

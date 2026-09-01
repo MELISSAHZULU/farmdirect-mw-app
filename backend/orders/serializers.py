@@ -26,19 +26,55 @@ class OrderSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'order_number', 'created_at', 'updated_at']
 
+class OrderItemCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating order items"""
+    class Meta:
+        model = OrderItem
+        fields = ['product', 'farmer', 'quantity', 'unit_price']
+
 class OrderCreateSerializer(serializers.ModelSerializer):
-    items = OrderItemSerializer(many=True, required=False)
+    items = OrderItemCreateSerializer(many=True, required=True)
     
     class Meta:
         model = Order
         fields = [
-            'delivery_area', 'delivery_address', 'delivery_date',
-            'special_instructions', 'payment_method', 'items'
+            'delivery_area', 
+            'delivery_address', 
+            'delivery_date',
+            'special_instructions', 
+            'payment_method', 
+            'items'
         ]
+    
+    def validate(self, data):
+        """Validate that items list is not empty"""
+        if not data.get('items'):
+            raise serializers.ValidationError({"items": "At least one item is required"})
+        return data
     
     def create(self, validated_data):
         items_data = validated_data.pop('items', [])
-        order = Order.objects.create(**validated_data)
+        
+        # Calculate total amount first
+        total_amount = 0
         for item_data in items_data:
-            OrderItem.objects.create(order=order, **item_data)
+            total_amount += item_data['quantity'] * item_data['unit_price']
+        
+        # Create order with calculated total_amount
+        order = Order.objects.create(
+            **validated_data,
+            total_amount=total_amount  # ← ADD THIS
+        )
+        
+        # Create order items
+        for item_data in items_data:
+            OrderItem.objects.create(
+                order=order,
+                product=item_data['product'],
+                farmer=item_data['farmer'],
+                quantity=item_data['quantity'],
+                unit_price=item_data['unit_price'],
+                total_price=item_data['quantity'] * item_data['unit_price']
+            )
+        
         return order

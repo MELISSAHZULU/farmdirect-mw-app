@@ -49,8 +49,13 @@ class ApiService {
           'role': 'customer',
         }),
       );
+      
+      print('📡 Register Status: ${response.statusCode}');
+      print('📝 Register Response: ${response.body}');
+      
       return jsonDecode(response.body);
     } catch (e) {
+      print('❌ Register Error: $e');
       return {'error': 'Network error: $e'};
     }
   }
@@ -68,8 +73,13 @@ class ApiService {
           'password': password,
         }),
       );
+      
+      print('📡 Login Status: ${response.statusCode}');
+      print('📝 Login Response: ${response.body}');
+      
       return jsonDecode(response.body);
     } catch (e) {
+      print('❌ Login Error: $e');
       return {'error': 'Network error: $e'};
     }
   }
@@ -83,9 +93,12 @@ class ApiService {
         headers: headers,
       );
 
+      print('📡 Products Status: ${response.statusCode}');
+
       if (response.statusCode == 200) {
         final dynamic data = jsonDecode(response.body);
         if (data is List) {
+          print('✅ Products list length: ${data.length}');
           return data.map((item) {
             // Parse string prices to double
             if (item['price'] is String) {
@@ -102,9 +115,11 @@ class ApiService {
         }
         return [];
       } else {
+        print('❌ Failed to load products: ${response.statusCode}');
         return [];
       }
     } catch (e) {
+      print('❌ Get Products Error: $e');
       return [];
     }
   }
@@ -142,41 +157,136 @@ class ApiService {
         headers: headers,
       );
 
+      print('📡 Get Orders Status: ${response.statusCode}');
+      print('📝 Get Orders Response: ${response.body}');
+
       if (response.statusCode == 200) {
         final dynamic data = jsonDecode(response.body);
+        
+        // Handle both list and paginated responses
+        List items = [];
         if (data is List) {
-          return data.map((item) => Order.fromJson(item)).toList();
+          items = data;
+        } else if (data is Map<String, dynamic> && data.containsKey('results')) {
+          items = data['results'] as List;
+        } else {
+          print('⚠️ Unexpected response format: ${data.runtimeType}');
+          return [];
         }
-        return [];
+        
+        print('✅ Orders list length: ${items.length}');
+        return items.map((item) {
+          print('📦 Processing order: ${item['order_number']}');
+          return Order.fromJson(item);
+        }).toList();
       } else {
+        print('❌ Failed to load orders: ${response.statusCode}');
         return [];
       }
     } catch (e) {
+      print('❌ Get Orders Error: $e');
       return [];
     }
   }
+
+  static Future<Map<String, dynamic>> getOrder(int id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/orders/$id/'),
+        headers: headers,
+      );
+
+      print('📡 Get Order Status: ${response.statusCode}');
+      print('📝 Get Order Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {'error': 'Failed to load order: ${response.statusCode}'};
+      }
+    } catch (e) {
+      print('❌ Get Order Error: $e');
+      return {'error': 'Network error: $e'};
+    }
+  }
+
+  // ============ CREATE ORDER ============
 
   static Future<Map<String, dynamic>> createOrder({
     required String deliveryArea,
     required String deliveryAddress,
     required String deliveryDate,
     required String paymentMethod,
+    String? specialInstructions,
     required List<Map<String, dynamic>> items,
   }) async {
     try {
+      // Ensure date is in YYYY-MM-DD format
+      String formattedDate = deliveryDate;
+      if (deliveryDate.contains('T')) {
+        formattedDate = deliveryDate.split('T')[0];
+      }
+      
+      final body = {
+        'delivery_area': deliveryArea,
+        'delivery_address': deliveryAddress,
+        'delivery_date': formattedDate,
+        'payment_method': paymentMethod,
+        'items': items,
+      };
+      
+      // Only add special_instructions if not empty
+      if (specialInstructions != null && specialInstructions.isNotEmpty) {
+        body['special_instructions'] = specialInstructions;
+      }
+
+      print('📦 Creating order with body: $body');
+
       final response = await http.post(
         Uri.parse('$baseUrl/orders/create/'),
         headers: headers,
-        body: jsonEncode({
-          'delivery_area': deliveryArea,
-          'delivery_address': deliveryAddress,
-          'delivery_date': deliveryDate,
-          'payment_method': paymentMethod,
-          'items': items,
-        }),
+        body: jsonEncode(body),
       );
-      return jsonDecode(response.body);
+
+      print('📡 Create Order Status: ${response.statusCode}');
+      print('📝 Create Order Response: ${response.body}');
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {
+          'error': 'Failed to create order: ${response.statusCode}', 
+          'detail': response.body
+        };
+      }
     } catch (e) {
+      print('❌ Create Order Error: $e');
+      return {'error': 'Network error: $e'};
+    }
+  }
+
+  // ============ CANCEL ORDER ============
+
+  static Future<Map<String, dynamic>> cancelOrder(int orderId) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/orders/$orderId/cancel/'),
+        headers: headers,
+      );
+
+      print('📡 Cancel Order Status: ${response.statusCode}');
+      print('📝 Cancel Order Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {
+          'error': 'Failed to cancel order: ${response.statusCode}',
+          'detail': response.body
+        };
+      }
+    } catch (e) {
+      print('❌ Cancel Order Error: $e');
       return {'error': 'Network error: $e'};
     }
   }
@@ -190,13 +300,28 @@ class ApiService {
         headers: headers,
       );
 
+      print('📡 Farmers Status: ${response.statusCode}');
+
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
         return [];
       }
     } catch (e) {
+      print('❌ Get Farmers Error: $e');
       return [];
     }
+  }
+
+  // ============ UTILITY ============
+
+  static void clearAuth() {
+    _authToken = null;
+  }
+
+  static bool get isAuthenticated => _authToken != null;
+
+  static void printHeaders() {
+    print('🔑 Headers: $headers');
   }
 }

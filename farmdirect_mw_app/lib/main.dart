@@ -13,6 +13,8 @@ import 'screens/favorites_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/favorites_provider.dart';
+import 'screens/help_support_screen.dart';
+import 'screens/checkout_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -62,6 +64,8 @@ class MyApp extends StatelessWidget {
           '/orders': (context) => const OrdersScreen(),
           '/profile': (context) => const ProfileScreen(),
           '/favorites': (context) => const FavoritesScreen(),
+          '/checkout': (context) => const CheckoutScreen(),
+          '/help-support': (context) => const HelpSupportScreen(),
           '/product-detail': (context) {
             final args = ModalRoute.of(context)!.settings.arguments as int;
             return ProductDetailScreen(productId: args);
