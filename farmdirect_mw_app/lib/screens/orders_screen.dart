@@ -18,7 +18,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   List<Order> _orders = [];
   bool _isLoading = true;
   String _error = '';
-  bool _isReordering = false;
+  int _reorderingOrderId = -1;
 
   @override
   void initState() {
@@ -242,6 +242,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         : 'N/A';
 
     int itemCount = order.items.length;
+    bool isReordering = _reorderingOrderId == order.id;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -389,17 +390,18 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: order.status == 'delivered' && !_isReordering
+                    onPressed: (order.status == 'delivered' || order.status == 'cancelled') && !isReordering
                         ? () => _reorderItems(order)
                         : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2E7D32),
+                      backgroundColor: (order.status == 'delivered' || order.status == 'cancelled')
+                          ? const Color(0xFF2E7D32)
+                          : Colors.grey[300],
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      disabledBackgroundColor: Colors.grey[300],
                     ),
-                    child: _isReordering
+                    child: isReordering
                         ? const SizedBox(
                             height: 20,
                             width: 20,
@@ -411,7 +413,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         : Text(
                             'Reorder',
                             style: TextStyle(
-                              color: order.status == 'delivered'
+                              color: (order.status == 'delivered' || order.status == 'cancelled')
                                   ? Colors.white
                                   : Colors.grey[600],
                             ),
@@ -427,7 +429,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   Future<void> _reorderItems(Order order) async {
-    setState(() => _isReordering = true);
+    setState(() {
+      _reorderingOrderId = order.id;
+    });
 
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     
@@ -454,13 +458,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
           quantity: item.quantity.toInt(),
         );
         addedCount++;
+        print('✅ Added ${product.name} x${item.quantity.toInt()} to cart');
       } catch (e) {
         print('❌ Failed to add product ${item.productId}: $e');
         failedCount++;
       }
     }
 
-    setState(() => _isReordering = false);
+    setState(() {
+      _reorderingOrderId = -1;
+    });
 
     if (mounted) {
       if (addedCount > 0 && failedCount == 0) {

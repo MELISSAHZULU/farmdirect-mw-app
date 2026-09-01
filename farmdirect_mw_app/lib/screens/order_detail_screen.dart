@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/order.dart';
 import '../services/api_service.dart';
 import '../providers/cart_provider.dart';
+import 'order_tracking_screen.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final int orderId;
@@ -316,8 +317,39 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ),
           const SizedBox(height: 16),
 
+          // Track Order Button
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OrderTrackingScreen(orderId: _order!.id),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.track_changes),
+              label: const Text(
+                'Track Order',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Action Buttons
-          if (_order!.status == 'delivered')
+          if (_order!.status == 'delivered' || _order!.status == 'cancelled')
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -471,6 +503,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         final product = await ApiService.getProduct(item.productId);
         cartProvider.addItem(product, quantity: item.quantity.toInt());
         addedCount++;
+        print('✅ Added ${product.name} x${item.quantity.toInt()} to cart');
       } catch (e) {
         print('❌ Failed to add product ${item.productId}: $e');
         failedCount++;
@@ -550,7 +583,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
