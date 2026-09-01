@@ -38,16 +38,19 @@ class OrderCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
+            'id',  # ← ADD THIS - so the id is returned
+            'order_number',  # ← ADD THIS - so the order number is returned
             'delivery_area', 
             'delivery_address', 
             'delivery_date',
             'special_instructions', 
             'payment_method', 
+            'total_amount',  # ← ADD THIS
             'items'
         ]
+        read_only_fields = ['id', 'order_number', 'total_amount']  # ← ADD THESE
     
     def validate(self, data):
-        """Validate that items list is not empty"""
         if not data.get('items'):
             raise serializers.ValidationError({"items": "At least one item is required"})
         return data
@@ -55,7 +58,7 @@ class OrderCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         items_data = validated_data.pop('items', [])
         
-        # Calculate total amount first
+        # Calculate total amount
         total_amount = 0
         for item_data in items_data:
             total_amount += item_data['quantity'] * item_data['unit_price']
@@ -63,7 +66,7 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         # Create order with calculated total_amount
         order = Order.objects.create(
             **validated_data,
-            total_amount=total_amount  # ← ADD THIS
+            total_amount=total_amount
         )
         
         # Create order items

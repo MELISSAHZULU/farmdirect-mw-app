@@ -163,7 +163,6 @@ class ApiService {
       if (response.statusCode == 200) {
         final dynamic data = jsonDecode(response.body);
         
-        // Handle both list and paginated responses
         List items = [];
         if (data is List) {
           items = data;
@@ -221,7 +220,6 @@ class ApiService {
     required List<Map<String, dynamic>> items,
   }) async {
     try {
-      // Ensure date is in YYYY-MM-DD format
       String formattedDate = deliveryDate;
       if (deliveryDate.contains('T')) {
         formattedDate = deliveryDate.split('T')[0];
@@ -235,7 +233,6 @@ class ApiService {
         'items': items,
       };
       
-      // Only add special_instructions if not empty
       if (specialInstructions != null && specialInstructions.isNotEmpty) {
         body['special_instructions'] = specialInstructions;
       }
@@ -252,7 +249,12 @@ class ApiService {
       print('📝 Create Order Response: ${response.body}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final data = jsonDecode(response.body);
+        // Ensure we have the order data
+        if (data is Map<String, dynamic>) {
+          return data;
+        }
+        return {'error': 'Invalid response format'};
       } else {
         return {
           'error': 'Failed to create order: ${response.statusCode}', 
@@ -287,6 +289,43 @@ class ApiService {
       }
     } catch (e) {
       print('❌ Cancel Order Error: $e');
+      return {'error': 'Network error: $e'};
+    }
+  }
+
+  // ============ PAYMENT ============
+
+  static Future<Map<String, dynamic>> initiatePayment({
+    required int orderId,
+    required String paymentMethod,
+  }) async {
+    try {
+      print('🔑 Initiating payment with token: $_authToken');
+      print('📦 Order ID: $orderId');
+      print('💳 Payment Method: $paymentMethod');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/orders/initiate-payment/'),
+        headers: headers,
+        body: jsonEncode({
+          'order_id': orderId,
+          'payment_method': paymentMethod,
+        }),
+      );
+
+      print('📡 Initiate Payment Status: ${response.statusCode}');
+      print('📝 Initiate Payment Response: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        return {
+          'error': 'Payment initiation failed: ${response.statusCode}',
+          'detail': response.body
+        };
+      }
+    } catch (e) {
+      print('❌ Initiate Payment Error: $e');
       return {'error': 'Network error: $e'};
     }
   }

@@ -1,9 +1,22 @@
-# orders/views.py
+# orders/views.py - Update the InitializePaymentView
+
+import os
+import hmac
+import hashlib
+import json
+import requests
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse, HttpResponse
 from .models import Order, OrderItem
 from .serializers import OrderSerializer, OrderCreateSerializer
+from django.conf import settings
+
+# ============ EXISTING ORDER VIEWS ============
 
 class OrderListView(generics.ListAPIView):
     """List all orders for the authenticated user"""
@@ -12,6 +25,7 @@ class OrderListView(generics.ListAPIView):
     
     def get_queryset(self):
         return Order.objects.filter(customer=self.request.user)
+
 
 class OrderCreateView(generics.CreateAPIView):
     """Create a new order"""
@@ -32,6 +46,7 @@ class OrderCreateView(generics.CreateAPIView):
             print(f"❌ Order validation errors: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class OrderDetailView(generics.RetrieveAPIView):
     """Get order details"""
     serializer_class = OrderSerializer
@@ -41,6 +56,7 @@ class OrderDetailView(generics.RetrieveAPIView):
     def get_queryset(self):
         return Order.objects.filter(customer=self.request.user)
 
+
 class OrderCancelView(generics.UpdateAPIView):
     """Cancel an order"""
     permission_classes = [permissions.IsAuthenticated]
@@ -49,7 +65,7 @@ class OrderCancelView(generics.UpdateAPIView):
     def get_queryset(self):
         return Order.objects.filter(
             customer=self.request.user,
-            status__in=['pending', 'packing']  # Only allow cancelling pending/packing
+            status__in=['pending', 'packing']
         )
     
     def update(self, request, *args, **kwargs):
@@ -60,3 +76,193 @@ class OrderCancelView(generics.UpdateAPIView):
             {'message': 'Order cancelled successfully', 'status': order.status},
             status=status.HTTP_200_OK
         )
+
+
+# ============ PAYMENT HANDLING VIEWS ============
+
+class InitializePaymentView(APIView):
+    """
+    Initialize a payment with PayChangu
+    Called from Flutter app when user selects Airtel Money or TNM Mpamba
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            # Get order details from request
+            order_id = request.data.get('order_id')
+            payment_method = request.data.get('payment_method')  # 'airtel_money' or 'tnm_mpamba'
+            
+            print(f"🔍 Order ID: {order_id}, Payment Method: {payment_method}")
+            
+            if not order_id:
+                return Response({'error': 'Order ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Get the order
+            try:
+                order = Order.objects.get(id=order_id, customer=request.user)
+                print(f"✅ Found order: {order.order_number} - Total: {order.total_amount}")
+            except Order.DoesNotExist:
+                return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+            # Check if order total is valid
+            if order.total_amount <= 0:
+                return Response({'error': 'Invalid order amount'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Get PayChangu configuration from environment
+            paychangu_secret = os.getenv('PAYCHANGU_SECRET_KEY')
+            
+            if not paychangu_secret:
+                print("❌ PAYCHANGU_SECRET_KEY not set in environment")
+                return Response({'error': 'Payment service not configured'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            # Determine which mobile money provider to use
+            provider = 'airtel-money' if payment_method == 'airtel_money' else 'tnm-mpamba'
+            
+            # Get customer phone number (remove leading + if present)
+            customer_phone = request.user.phone
+            if customer_phone.startswith('+'):
+                customer_phone = customer_phone[1:]
+            
+            # Prepare payload for PayChangu API
+            payload = {
+                'tx_ref': order.order_number,
+                'amount': str(float(order.total_amount)),
+                'currency': 'MWK',
+                'customer': {
+                    'first_name': request.user.first_name,
+                    'last_name': request.user.last_name,
+                    'email': request.user.email or f"{request.user.phone}@farmdirect.mw",
+                    'phone_number': customer_phone,
+                },
+                'payment_method': provider,
+                'redirect_url': os.getenv('FRONTEND_URL', 'http://localhost:3000') + '/payment-return',
+                'callback_url': os.getenv('BACKEND_URL', 'http://localhost:8000') + '/api/orders/webhook/',
+                'metadata': {
+                    'order_id': order.id,
+                    'customer_id': request.user.id,
+                }
+            }
+            
+            print(f"📦 PayChangu Payload: {payload}")
+            
+            # Make request to PayChangu API
+            api_url = 'https://api.paychangu.com/v1/payment/initiate'
+            headers = {
+                'Authorization': f'Bearer {paychangu_secret}',
+                'Content-Type': 'application/json',
+            }
+            
+            print(f"🌐 Calling PayChangu API: {api_url}")
+            
+            response = requests.post(api_url, json=payload, headers=headers, timeout=30)
+            print(f"📡 PayChangu Response Status: {response.status_code}")
+            
+            if response.status_code in [200, 201]:
+                response_data = response.json()
+                print(f"✅ PayChangu Response: {response_data}")
+                
+                # Update order with payment reference
+                order.payment_reference = response_data.get('data', {}).get('tx_ref')
+                order.save()
+                
+                return Response({
+                    'status': 'success',
+                    'payment_url': response_data.get('data', {}).get('payment_url'),
+                    'tx_ref': response_data.get('data', {}).get('tx_ref'),
+                }, status=status.HTTP_200_OK)
+            else:
+                print(f"❌ PayChangu Error: {response.text}")
+                return Response({
+                    'error': 'Payment initiation failed',
+                    'detail': response.text
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except requests.exceptions.Timeout:
+            print("❌ PayChangu API timeout")
+            return Response({'error': 'Payment service timeout'}, status=status.HTTP_504_GATEWAY_TIMEOUT)
+        except requests.exceptions.ConnectionError:
+            print("❌ PayChangu API connection error")
+            return Response({'error': 'Cannot connect to payment service'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except Exception as e:
+            print(f"❌ Payment initiation error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============ PAYMENT WEBHOOK ============
+
+# Get webhook secret from environment
+WEBHOOK_SECRET = os.getenv('PAYCHANGU_WEBHOOK_SECRET', '')
+
+@csrf_exempt
+@require_POST
+def payment_webhook(request):
+    """
+    Handle PayChangu webhook notifications
+    This is where PayChangu sends payment status updates
+    """
+    try:
+        # Get the raw payload and signature
+        raw_payload = request.body
+        signature = request.headers.get('Signature', '')
+        
+        # Verify webhook signature
+        if WEBHOOK_SECRET:
+            computed_signature = hmac.new(
+                WEBHOOK_SECRET.encode('utf-8'),
+                raw_payload,
+                hashlib.sha256
+            ).hexdigest()
+            
+            if not hmac.compare_digest(computed_signature, signature):
+                print('⚠️ Invalid webhook signature')
+                return HttpResponse('Invalid signature', status=401)
+        
+        # Parse the payload
+        payload = json.loads(raw_payload)
+        print(f'📦 Webhook received: {payload}')
+        
+        # Get payment status and reference
+        event_type = payload.get('event_type')
+        data = payload.get('data', {})
+        
+        # Find the order using the transaction reference
+        tx_ref = data.get('tx_ref') or data.get('reference')
+        status = data.get('status')
+        order = None
+        
+        if tx_ref:
+            try:
+                order = Order.objects.get(order_number=tx_ref)
+            except Order.DoesNotExist:
+                print(f'❌ Order not found for tx_ref: {tx_ref}')
+                return JsonResponse({'status': 'order not found'}, status=404)
+        
+        # Update order based on payment status
+        if order:
+            if status in ['success', 'completed', 'paid']:
+                order.payment_status = 'paid'
+                order.status = 'confirmed'
+                order.save()
+                print(f'✅ Order {order.order_number} confirmed via webhook')
+                
+            elif status in ['failed', 'cancelled']:
+                order.status = 'cancelled'
+                order.save()
+                print(f'❌ Order {order.order_number} payment failed')
+            
+            elif status in ['pending']:
+                order.payment_status = 'pending'
+                order.save()
+                print(f'⏳ Order {order.order_number} payment pending')
+        
+        # Always return 200 to acknowledge receipt
+        return JsonResponse({'status': 'success'}, status=200)
+        
+    except json.JSONDecodeError:
+        return HttpResponse('Invalid JSON', status=400)
+    except Exception as e:
+        print(f'❌ Webhook error: {e}')
+        return HttpResponse('Error processing webhook', status=500)

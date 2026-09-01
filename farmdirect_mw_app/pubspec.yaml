@@ -37,6 +37,8 @@ dependencies:
   # For URL launcher (phone calls, WhatsApp)
   url_launcher: ^6.2.1
 
+  paychangu_flutter: ^0.0.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
