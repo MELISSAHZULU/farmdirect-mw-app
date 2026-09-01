@@ -5,10 +5,14 @@ import '../models/order.dart';
 import '../models/user.dart';
 
 class ApiService {
-  // For Chrome web on same machine
-  static const String baseUrl = 'http://localhost:8000/api';
+  // ============ CHANGE THIS FOR PRODUCTION ============
+  // For Render (Production):
+  static const String baseUrl = 'https://farmdirect-mw-app.onrender.com/api';
   
-  // For physical device testing, use your computer's IP:
+  // For local development (comment out when deploying):
+  // static const String baseUrl = 'http://localhost:8000/api';
+  
+  // For physical device testing (use your computer's IP):
   // static const String baseUrl = 'http://10.199.199.249:8000/api';
   
   // For Android emulator:
@@ -100,7 +104,6 @@ class ApiService {
         if (data is List) {
           print('✅ Products list length: ${data.length}');
           return data.map((item) {
-            // Parse string prices to double
             if (item['price'] is String) {
               item['price'] = double.tryParse(item['price'] as String) ?? 0.0;
             }
@@ -132,7 +135,6 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      // Parse string prices to double
       if (data['price'] is String) {
         data['price'] = double.tryParse(data['price'] as String) ?? 0.0;
       }
@@ -174,10 +176,7 @@ class ApiService {
         }
         
         print('✅ Orders list length: ${items.length}');
-        return items.map((item) {
-          print('📦 Processing order: ${item['order_number']}');
-          return Order.fromJson(item);
-        }).toList();
+        return items.map((item) => Order.fromJson(item)).toList();
       } else {
         print('❌ Failed to load orders: ${response.statusCode}');
         return [];
@@ -249,12 +248,7 @@ class ApiService {
       print('📝 Create Order Response: ${response.body}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        // Ensure we have the order data
-        if (data is Map<String, dynamic>) {
-          return data;
-        }
-        return {'error': 'Invalid response format'};
+        return jsonDecode(response.body);
       } else {
         return {
           'error': 'Failed to create order: ${response.statusCode}', 
@@ -300,9 +294,7 @@ class ApiService {
     required String paymentMethod,
   }) async {
     try {
-      print('🔑 Initiating payment with token: $_authToken');
-      print('📦 Order ID: $orderId');
-      print('💳 Payment Method: $paymentMethod');
+      print('💳 Initiating payment for order: $orderId');
 
       final response = await http.post(
         Uri.parse('$baseUrl/orders/initiate-payment/'),
@@ -359,8 +351,4 @@ class ApiService {
   }
 
   static bool get isAuthenticated => _authToken != null;
-
-  static void printHeaders() {
-    print('🔑 Headers: $headers');
-  }
 }

@@ -82,7 +82,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Delivery Address Section
                   _buildSectionHeader('Delivery Address'),
                   const SizedBox(height: 8),
                   Container(
@@ -548,7 +547,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       final instructions = _instructionsController.text.trim();
 
-      // Create order in backend
       final orderResponse = await ApiService.createOrder(
         deliveryArea: _selectedArea!,
         deliveryAddress: _selectedArea!,
@@ -564,10 +562,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         throw Exception(orderResponse['error']);
       }
 
-      // Get order ID - try different possible keys
       int? orderId = orderResponse['id'];
       
-      // If id is not found, try to get it from the data
       if (orderId == null && orderResponse.containsKey('data')) {
         final data = orderResponse['data'];
         if (data is Map<String, dynamic>) {
@@ -577,7 +573,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       print('📦 Order ID: $orderId');
 
-      // If Cash on Delivery, we're done
       if (_selectedPaymentMethod == 'cash_on_delivery') {
         cartProvider.clearCart();
         if (mounted) {
@@ -594,12 +589,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         return;
       }
 
-      // For digital payments, we need the order ID
       if (orderId == null) {
-        // Try to get order number as fallback
         final orderNumber = orderResponse['order_number'];
         if (orderNumber != null) {
-          // Could try to fetch the order by number
           print('⚠️ No "id" in response, but found order_number: $orderNumber');
           throw Exception('Order created but ID not returned. Please check your orders.');
         } else {
@@ -650,11 +642,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         if (mounted) {
           setState(() => _isProcessingPayment = false);
           
-          // Open payment URL in browser
           final uri = Uri.parse(paymentUrl);
           if (await canLaunchUrl(uri)) {
             await launchUrl(uri, mode: LaunchMode.externalApplication);
-            // Navigate to orders after payment
             Navigator.pushNamedAndRemoveUntil(context, '/orders', (route) => false);
           } else {
             throw Exception('Could not open payment page');
