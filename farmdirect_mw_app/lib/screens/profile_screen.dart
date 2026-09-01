@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/favorites_provider.dart';
 import '../services/api_service.dart';
 import '../models/order.dart';
 
@@ -41,6 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    final favoritesProvider = Provider.of<FavoritesProvider>(context);
     final user = authProvider.user;
 
     // Count active orders (not delivered or cancelled)
@@ -271,15 +273,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildMenuItem(
                         icon: Icons.favorite_border,
                         title: 'Favorites',
-                        subtitle: '0 items',
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Favorites coming soon!'),
-                              backgroundColor: Color(0xFF2E7D32),
-                            ),
-                          );
-                        },
+                        subtitle: '${favoritesProvider.count} items',
+                        onTap: () => Navigator.pushNamed(context, '/favorites'),
                       ),
                       const SizedBox(height: 8),
 

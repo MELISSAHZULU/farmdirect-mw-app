@@ -6,11 +6,13 @@ import 'screens/register_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/product_detail_screen.dart';
 import 'screens/cart_screen.dart';
+import 'screens/orders_screen.dart';
 import 'screens/profile_screen.dart';
-import 'screens/orders_screen.dart';  
+import 'screens/search_screen.dart';
+import 'screens/favorites_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
-import 'screens/search_screen.dart';
+import 'providers/favorites_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -25,6 +27,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => FavoritesProvider()),
       ],
       child: MaterialApp(
         title: 'FarmDirect MW',
@@ -55,13 +58,14 @@ class MyApp extends StatelessWidget {
           '/register': (context) => const RegisterScreen(),
           '/home': (context) => const HomeScreen(),
           '/search': (context) => const SearchScreen(),
+          '/cart': (context) => const CartScreen(),
+          '/orders': (context) => const OrdersScreen(),
+          '/profile': (context) => const ProfileScreen(),
+          '/favorites': (context) => const FavoritesScreen(),
           '/product-detail': (context) {
             final args = ModalRoute.of(context)!.settings.arguments as int;
             return ProductDetailScreen(productId: args);
           },
-          '/cart': (context) => const CartScreen(),
-          '/orders': (context) => const OrdersScreen(),  // ← ADD THIS
-          '/profile': (context) => const ProfileScreen(),
         },
       ),
     );

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../models/product.dart';
 import '../providers/cart_provider.dart';
+import '../providers/favorites_provider.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final int productId;
@@ -57,9 +58,31 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         elevation: 0,
         foregroundColor: const Color(0xFF2E7D32),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.favorite_border),
-            onPressed: () {},
+          // Favorite Button
+          Consumer<FavoritesProvider>(
+            builder: (context, favoritesProvider, child) {
+              final isFav = favoritesProvider.isFavorite(_product!);
+              return IconButton(
+                icon: Icon(
+                  isFav ? Icons.favorite : Icons.favorite_border,
+                  color: isFav ? Colors.red : const Color(0xFF2E7D32),
+                ),
+                onPressed: () {
+                  favoritesProvider.toggleFavorite(_product!);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        isFav 
+                          ? 'Removed from favorites' 
+                          : 'Added to favorites',
+                      ),
+                      backgroundColor: isFav ? Colors.red : const Color(0xFF2E7D32),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                },
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.share_outlined),
