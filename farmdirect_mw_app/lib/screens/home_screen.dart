@@ -622,13 +622,27 @@ class _HomeScreenState extends State<HomeScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '${product.displayPrice}/${product.unit}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Color(0xFF2E7D32),
-                          ),
+                        // Price with faint unit like prototype
+                        Row(
+                          children: [
+                            Text(
+                              product.displayPrice,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: Color(0xFF2E7D32),
+                              ),
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              '/${product.unit}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[500], // Faint color
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
                         ),
                         InkWell(
                           onTap: () {
