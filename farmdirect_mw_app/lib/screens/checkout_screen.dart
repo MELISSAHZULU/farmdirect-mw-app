@@ -82,6 +82,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Delivery Address Section
                   _buildSectionHeader('Delivery Address'),
                   const SizedBox(height: 8),
                   Container(
@@ -515,6 +516,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+  // ============ PLACE ORDER ============
+
   Future<void> _placeOrder() async {
     if (_selectedArea == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -562,17 +565,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         throw Exception(orderResponse['error']);
       }
 
-      int? orderId = orderResponse['id'];
-      
-      if (orderId == null && orderResponse.containsKey('data')) {
-        final data = orderResponse['data'];
-        if (data is Map<String, dynamic>) {
-          orderId = data['id'];
-        }
-      }
-
-      print('📦 Order ID: $orderId');
-
+      // ============ CASH ON DELIVERY - DIRECT CONFIRMATION ============
       if (_selectedPaymentMethod == 'cash_on_delivery') {
         cartProvider.clearCart();
         if (mounted) {
@@ -586,13 +579,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           );
           Navigator.pushNamedAndRemoveUntil(context, '/orders', (route) => false);
         }
-        return;
+        return; // ← CRITICAL: Exit here for Cash on Delivery
+      }
+
+      // ============ DIGITAL PAYMENTS (Airtel Money / TNM Mpamba) ============
+      int? orderId = orderResponse['id'];
+      
+      if (orderId == null && orderResponse.containsKey('data')) {
+        final data = orderResponse['data'];
+        if (data is Map<String, dynamic>) {
+          orderId = data['id'];
+        }
       }
 
       if (orderId == null) {
         final orderNumber = orderResponse['order_number'];
         if (orderNumber != null) {
-          print('⚠️ No "id" in response, but found order_number: $orderNumber');
+          print('⚠️ No "id" in response, found order_number: $orderNumber');
           throw Exception('Order created but ID not returned. Please check your orders.');
         } else {
           print('⚠️ No "id" or "order_number" in response: $orderResponse');
@@ -616,6 +619,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
+  // ============ INITIATE PAYMENT ============
+
   Future<void> _initiatePayment(int orderId, CartProvider cartProvider) async {
     setState(() {
       _isProcessingPayment = true;
@@ -630,6 +635,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         paymentMethod: _selectedPaymentMethod,
       );
 
+      print('📦 Payment Response: $response');
+
       if (response.containsKey('error')) {
         throw Exception(response['error']);
       }
@@ -641,6 +648,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         
         if (mounted) {
           setState(() => _isProcessingPayment = false);
+          
+          print('🔗 Opening payment URL: $paymentUrl');
           
           final uri = Uri.parse(paymentUrl);
           if (await canLaunchUrl(uri)) {
@@ -661,10 +670,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           _isProcessingPayment = false;
           _isSubmitting = false;
         });
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('❌ Payment error: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }

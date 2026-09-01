@@ -5,18 +5,12 @@ import '../models/order.dart';
 import '../models/user.dart';
 
 class ApiService {
-  // ============ CHANGE THIS FOR PRODUCTION ============
-  // For Render (Production):
+  // ============ USE RENDER URL ============
+  // REPLACE with your actual Render URL
   static const String baseUrl = 'https://farmdirect-mw-app.onrender.com/api';
   
-  // For local development (comment out when deploying):
+  // For local development (comment out when deploying to Render):
   // static const String baseUrl = 'http://localhost:8000/api';
-  
-  // For physical device testing (use your computer's IP):
-  // static const String baseUrl = 'http://10.199.199.249:8000/api';
-  
-  // For Android emulator:
-  // static const String baseUrl = 'http://10.0.2.2:8000/api';
   
   static String? _authToken;
 
