@@ -5,7 +5,7 @@ django-cors-headers==4.3.0
 python-dotenv==1.0.0
 whitenoise==6.6.0
 django-filter==23.5
-Pillow==10.2.0
+Pillow==10.4.0
 cloudinary==1.33.0
 africastalking==1.2.0
 djangorestframework-api-key==2.3.0
