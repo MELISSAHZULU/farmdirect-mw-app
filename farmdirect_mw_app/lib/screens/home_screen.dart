@@ -22,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   String _selectedCategory = 'All';
   final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocusNode = FocusNode();
+  FocusNode? _searchFocusNode;
 
   final List<String> _categories = const [
     'All',
@@ -38,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _searchFocusNode = FocusNode();
     _loadProducts();
     _searchController.addListener(_filterProducts);
   }
@@ -45,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _searchController.dispose();
-    _searchFocusNode.dispose();
+    _searchFocusNode?.dispose();
     super.dispose();
   }
 
@@ -192,7 +193,6 @@ class _HomeScreenState extends State<HomeScreen> {
           if (index == 0) {
             // Already on Home
           } else if (index == 1) {
-            // Navigate to search screen
             Navigator.pushNamed(context, '/search');
           } else if (index == 2) {
             Navigator.pushNamed(context, '/cart');
