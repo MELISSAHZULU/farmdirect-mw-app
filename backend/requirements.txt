@@ -5,8 +5,12 @@ django-cors-headers==4.3.0
 python-dotenv==1.0.0
 whitenoise==6.6.0
 django-filter==23.5
-Pillow==10.4.0
 cloudinary==1.33.0
 africastalking==1.2.0
 djangorestframework-api-key==2.3.0
 setuptools==69.0.0
+django-cloudinary-storage==0.3.0
+requests==2.31.0
+gunicorn==21.2.0
+psycopg2-binary==2.9.9
+dj-database-url==2.1.0
