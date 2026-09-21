@@ -5,12 +5,12 @@ import '../models/order.dart';
 import '../models/user.dart';
 
 class ApiService {
-  // ============ USE YOUR RENDER URL ============
+  // ============ RENDER URL ============
   static const String baseUrl = 'https://farmdirect-mw-app.onrender.com/api';
-  
+
   // For local testing (comment out when deploying):
   // static const String baseUrl = 'http://localhost:8000/api';
-  
+
   static String? _authToken;
 
   static void setAuthToken(String token) { _authToken = token; }
@@ -46,10 +46,10 @@ class ApiService {
           'role': 'customer',
         }),
       );
-      
+
       print('📡 Register Status: ${response.statusCode}');
       print('📝 Register Response: ${response.body}');
-      
+
       return jsonDecode(response.body);
     } catch (e) {
       print('❌ Register Error: $e');
@@ -70,10 +70,10 @@ class ApiService {
           'password': password,
         }),
       );
-      
+
       print('📡 Login Status: ${response.statusCode}');
       print('📝 Login Response: ${response.body}');
-      
+
       return jsonDecode(response.body);
     } catch (e) {
       print('❌ Login Error: $e');
@@ -157,7 +157,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final dynamic data = jsonDecode(response.body);
-        
+
         List items = [];
         if (data is List) {
           items = data;
@@ -167,7 +167,7 @@ class ApiService {
           print('⚠️ Unexpected response format: ${data.runtimeType}');
           return [];
         }
-        
+
         print('✅ Orders list length: ${items.length}');
         return items.map((item) => Order.fromJson(item)).toList();
       } else {
@@ -216,7 +216,7 @@ class ApiService {
       if (deliveryDate.contains('T')) {
         formattedDate = deliveryDate.split('T')[0];
       }
-      
+
       final body = {
         'delivery_area': deliveryArea,
         'delivery_address': deliveryAddress,
@@ -224,7 +224,7 @@ class ApiService {
         'payment_method': paymentMethod,
         'items': items,
       };
-      
+
       if (specialInstructions != null && specialInstructions.isNotEmpty) {
         body['special_instructions'] = specialInstructions;
       }
@@ -244,7 +244,7 @@ class ApiService {
         return jsonDecode(response.body);
       } else {
         return {
-          'error': 'Failed to create order: ${response.statusCode}', 
+          'error': 'Failed to create order: ${response.statusCode}',
           'detail': response.body
         };
       }

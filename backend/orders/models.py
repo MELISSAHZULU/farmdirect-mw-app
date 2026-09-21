@@ -17,6 +17,7 @@ class Order(models.Model):
     PAYMENT_CHOICES = (
         ('cash_on_delivery', 'Cash on Delivery'),
         ('airtel_money', 'Airtel Money'),
+        ('paychangu', 'Pay Online (PayChangu)'),
         ('tnm_mpamba', 'TNM Mpamba'),
     )
     

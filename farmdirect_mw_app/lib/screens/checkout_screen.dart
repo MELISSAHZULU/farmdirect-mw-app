@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart';
@@ -15,7 +14,7 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
-  String _selectedPaymentMethod = 'cash_on_delivery';
+  String _paymentMethod = 'cash_on_delivery';
   final TextEditingController _instructionsController = TextEditingController();
   bool _isSubmitting = false;
   bool _isProcessingPayment = false;
@@ -51,10 +50,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(
-          'Checkout',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Checkout', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF2E7D32),
         foregroundColor: Colors.white,
         elevation: 0,
@@ -68,12 +64,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2E7D32)),
                   ),
                   SizedBox(height: 16),
-                  Text('Processing payment...'),
+                  Text('Opening payment page...'),
                   SizedBox(height: 8),
-                  Text(
-                    'Please complete the payment on your phone',
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
+                  Text('Complete your payment in the browser',
+                      style: TextStyle(fontSize: 14, color: Colors.grey)),
                 ],
               ),
             )
@@ -82,22 +76,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Delivery Address Section
+                  // Delivery Address
                   _buildSectionHeader('Delivery Address'),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.08),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
+                    decoration: _cardDecoration(),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -108,17 +92,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.location_on),
                           ),
-                          items: _deliveryAreas.map((area) {
-                            return DropdownMenuItem(
-                              value: area,
-                              child: Text(area),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedArea = value;
-                            });
-                          },
+                          items: _deliveryAreas
+                              .map((a) => DropdownMenuItem(value: a, child: Text(a)))
+                              .toList(),
+                          onChanged: (v) => setState(() => _selectedArea = v),
                         ),
                         const SizedBox(height: 12),
                         Container(
@@ -129,34 +106,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ),
                           child: Row(
                             children: [
-                              const Icon(
-                                Icons.person,
-                                size: 16,
-                                color: Color(0xFF2E7D32),
-                              ),
+                              const Icon(Icons.person, size: 16, color: Color(0xFF2E7D32)),
                               const SizedBox(width: 8),
-                              Text(
-                                '${user?.firstName ?? 'Guest'} ${user?.lastName ?? ''}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
+                              Text('${user?.firstName ?? 'Guest'} ${user?.lastName ?? ''}',
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey[700])),
                               const Spacer(),
-                              const Icon(
-                                Icons.phone,
-                                size: 14,
-                                color: Colors.grey,
-                              ),
+                              const Icon(Icons.phone, size: 14, color: Colors.grey),
                               const SizedBox(width: 4),
-                              Text(
-                                user?.phone ?? '',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
+                              Text(user?.phone ?? '',
+                                  style: TextStyle(fontSize: 14, color: Colors.grey[600])),
                             ],
                           ),
                         ),
@@ -165,76 +126,36 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Delivery Day Section
+                  // Delivery Day
                   Container(
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.08),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
+                    decoration: _cardDecoration(),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
-                          children: [
-                            Icon(
-                              Icons.local_shipping,
-                              color: Color(0xFF2E7D32),
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              'Delivery Day: WEDNESDAY 12 AUG',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
+                        const Row(children: [
+                          Icon(Icons.local_shipping, color: Color(0xFF2E7D32)),
+                          SizedBox(width: 8),
+                          Text('Delivery Day: WEDNESDAY 12 AUG',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        ]),
                         const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.access_time,
-                              size: 16,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Delivery between 9 AM – 2 PM',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
+                        Row(children: [
+                          const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                          const SizedBox(width: 8),
+                          Text('Delivery between 9 AM – 2 PM',
+                              style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                        ]),
                         const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.warning_amber,
-                              size: 16,
-                              color: Colors.orange,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Orders close Tuesday 8 PM',
+                        Row(children: [
+                          const Icon(Icons.warning_amber, size: 16, color: Colors.orange),
+                          const SizedBox(width: 8),
+                          Text('Orders close Tuesday 8 PM',
                               style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.orange[700],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
+                                  fontSize: 13,
+                                  color: Colors.orange[700],
+                                  fontWeight: FontWeight.w500)),
+                        ]),
                       ],
                     ),
                   ),
@@ -243,27 +164,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   // Special Instructions
                   Container(
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.08),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
+                    decoration: _cardDecoration(),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Special Instructions',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
+                        const Text('Special Instructions',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                         const SizedBox(height: 8),
                         TextField(
                           controller: _instructionsController,
@@ -272,13 +178,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             hintText: 'Leave at gate, call on arrival...',
                             hintStyle: TextStyle(color: Colors.grey[400]),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: Colors.grey[300]!)),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF2E7D32)),
-                            ),
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFF2E7D32))),
                             contentPadding: const EdgeInsets.all(12),
                           ),
                         ),
@@ -287,50 +191,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Payment Method
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Payment Method',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          _buildPaymentOption(
-                            value: 'cash_on_delivery',
-                            title: 'Cash on Delivery',
-                            subtitle: 'Pay when delivered',
-                            icon: Icons.money,
-                            isPopular: true,
-                          ),
-                          const Divider(height: 1),
-                          _buildPaymentOption(
-                            value: 'airtel_money',
-                            title: 'Airtel Money',
-                            subtitle: 'Airtel +265',
-                            icon: Icons.phone_android,
-                            isPopular: false,
-                          ),
-                          const Divider(height: 1),
-                          _buildPaymentOption(
-                            value: 'tnm_mpamba',
-                            title: 'TNM Mpamba',
-                            subtitle: 'TNM +265',
-                            icon: Icons.phone_iphone,
-                            isPopular: false,
-                          ),
-                        ],
-                      ),
+                  // Payment Method — TWO OPTIONS ONLY
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: _cardDecoration(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Payment Method',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        const SizedBox(height: 12),
+                        _paymentOption(
+                          value: 'cash_on_delivery',
+                          title: 'Cash on Delivery',
+                          subtitle: 'Pay when delivered',
+                          icon: Icons.payments_outlined,
+                        ),
+                        _paymentOption(
+                          value: 'paychangu',
+                          title: 'Pay Online',
+                          subtitle: 'Airtel Money, TNM Mpamba, card or bank',
+                          icon: Icons.lock_outline,
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -338,106 +221,59 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   // Order Summary
                   Container(
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.08),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
+                    decoration: _cardDecoration(),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Order Summary',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
+                        const Text('Order Summary',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                         const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Subtotal (${cartProvider.itemCount} items)',
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                            Text('K${cartProvider.totalPrice.toInt()}'),
-                          ],
-                        ),
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          Text('Subtotal (${cartProvider.itemCount} items)',
+                              style: TextStyle(color: Colors.grey[600])),
+                          Text('K${cartProvider.totalPrice.toInt()}'),
+                        ]),
                         const SizedBox(height: 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Delivery',
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                            const Text(
-                              'FREE',
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          Text('Delivery', style: TextStyle(color: Colors.grey[600])),
+                          const Text('FREE',
                               style: TextStyle(
-                                color: Color(0xFF2E7D32),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
+                                  color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
+                        ]),
                         const Divider(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Total',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              'K${cartProvider.totalPrice.toInt()}',
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          const Text('Total',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          Text('K${cartProvider.totalPrice.toInt()}',
                               style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF2E7D32),
-                              ),
-                            ),
-                          ],
-                        ),
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2E7D32))),
+                        ]),
                       ],
                     ),
                   ),
                   const SizedBox(height: 24),
 
-                  // Place Order Button
+                  // Place Order
                   SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: _isSubmitting || _selectedArea == null
-                          ? null
-                          : _placeOrder,
+                      onPressed: _isSubmitting || _selectedArea == null ? null : _placeOrder,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF2E7D32),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        shape:
+                            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         disabledBackgroundColor: Colors.grey[300],
                       ),
                       child: _isSubmitting
                           ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text(
-                              'PLACE ORDER',
+                          : const Text('PLACE ORDER',
                               style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white)),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -447,84 +283,75 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+  BoxDecoration _cardDecoration() => BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.grey.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2)),
+        ],
+      );
+
   Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-        color: Color(0xFF1B5E20),
-      ),
-    );
+    return Text(title,
+        style: const TextStyle(
+            fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1B5E20)));
   }
 
-  Widget _buildPaymentOption({
+  Widget _paymentOption({
     required String value,
     required String title,
     required String subtitle,
     required IconData icon,
-    required bool isPopular,
   }) {
-    final isSelected = _selectedPaymentMethod == value;
-
-    return RadioListTile<String>(
-      value: value,
-      groupValue: _selectedPaymentMethod,
-      onChanged: (val) {
-        setState(() {
-          _selectedPaymentMethod = val!;
-        });
-      },
-      title: Row(
-        children: [
-          Icon(icon, color: isSelected ? const Color(0xFF2E7D32) : Colors.grey[600]),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: TextStyle(
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? const Color(0xFF2E7D32) : Colors.grey[700],
-            ),
+    final selected = _paymentMethod == value;
+    final color = selected ? const Color(0xFF2E7D32) : Colors.grey;
+    return InkWell(
+      onTap: () => setState(() => _paymentMethod = value),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: selected ? const Color(0xFF2E7D32) : Colors.grey.shade300,
+            width: selected ? 2 : 1,
           ),
-          if (isPopular)
-            Container(
-              margin: const EdgeInsets.only(left: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.amber[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                'POPULAR',
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.amber,
-                ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(subtitle,
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                ],
               ),
             ),
-        ],
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          fontSize: 12,
-          color: Colors.grey[500],
+            Icon(
+              selected ? Icons.radio_button_checked : Icons.radio_button_off,
+              color: color,
+            ),
+          ],
         ),
       ),
-      activeColor: const Color(0xFF2E7D32),
     );
   }
 
   // ============ PLACE ORDER ============
-
   Future<void> _placeOrder() async {
     if (_selectedArea == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select a delivery area'),
-          backgroundColor: Colors.orange,
-        ),
+            content: Text('Please select a delivery area'),
+            backgroundColor: Colors.orange),
       );
       return;
     }
@@ -533,7 +360,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     try {
       final cartProvider = Provider.of<CartProvider>(context, listen: false);
-      final user = Provider.of<AuthProvider>(context, listen: false).user;
 
       if (cartProvider.items.isEmpty) {
         throw Exception('Your cart is empty');
@@ -554,73 +380,60 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         deliveryArea: _selectedArea!,
         deliveryAddress: _selectedArea!,
         deliveryDate: DateTime.now().toIso8601String().split('T')[0],
-        paymentMethod: _selectedPaymentMethod,
+        paymentMethod: _paymentMethod,
         specialInstructions: instructions.isNotEmpty ? instructions : null,
         items: orderItems,
       );
 
-      print('📦 Full Order Response: $orderResponse');
+      print('[ORDER] Response: $orderResponse');
 
       if (orderResponse.containsKey('error')) {
         throw Exception(orderResponse['error']);
       }
 
-      // ============ CASH ON DELIVERY - DIRECT CONFIRMATION ============
-      if (_selectedPaymentMethod == 'cash_on_delivery') {
+      // Extract order ID
+      int? orderId = orderResponse['id'];
+      if (orderId == null && orderResponse.containsKey('data')) {
+        final data = orderResponse['data'];
+        if (data is Map<String, dynamic>) orderId = data['id'];
+      }
+
+      if (orderId == null) {
+        throw Exception('Order ID not returned');
+      }
+
+      // Cash on Delivery — done
+      if (_paymentMethod == 'cash_on_delivery') {
         cartProvider.clearCart();
         if (mounted) {
           setState(() => _isSubmitting = false);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('🎉 Order placed successfully!'),
-              backgroundColor: Color(0xFF2E7D32),
-              duration: Duration(seconds: 2),
-            ),
+                content: Text('🎉 Order placed successfully!'),
+                backgroundColor: Color(0xFF2E7D32),
+                duration: Duration(seconds: 2)),
           );
           Navigator.pushNamedAndRemoveUntil(context, '/orders', (route) => false);
         }
-        return; // ← CRITICAL: Exit here for Cash on Delivery
+        return;
       }
 
-      // ============ DIGITAL PAYMENTS (Airtel Money / TNM Mpamba) ============
-      int? orderId = orderResponse['id'];
-      
-      if (orderId == null && orderResponse.containsKey('data')) {
-        final data = orderResponse['data'];
-        if (data is Map<String, dynamic>) {
-          orderId = data['id'];
-        }
-      }
-
-      if (orderId == null) {
-        final orderNumber = orderResponse['order_number'];
-        if (orderNumber != null) {
-          print('⚠️ No "id" in response, found order_number: $orderNumber');
-          throw Exception('Order created but ID not returned. Please check your orders.');
-        } else {
-          print('⚠️ No "id" or "order_number" in response: $orderResponse');
-          throw Exception('Order ID not returned from server');
-        }
-      }
-
+      // Pay Online (PayChangu)
       await _initiatePayment(orderId, cartProvider);
-
     } catch (e) {
-      print('❌ Place Order Error: $e');
+      print('[ORDER] Error: $e');
       if (mounted) {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Failed to place order: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+              content: Text('❌ Failed to place order: ${e.toString()}'),
+              backgroundColor: Colors.red),
         );
       }
     }
   }
 
-  // ============ INITIATE PAYMENT ============
-
+  // ============ INITIATE PAYCHANGU PAYMENT ============
   Future<void> _initiatePayment(int orderId, CartProvider cartProvider) async {
     setState(() {
       _isProcessingPayment = true;
@@ -628,55 +441,47 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     });
 
     try {
-      print('💳 Initiating payment for order: $orderId');
-      
-      final response = await ApiService.initiatePayment(
+      final res = await ApiService.initiatePayment(
         orderId: orderId,
-        paymentMethod: _selectedPaymentMethod,
+        paymentMethod: 'paychangu',
       );
 
-      print('📦 Payment Response: $response');
+      print('[PAY] Response: $res');
 
-      if (response.containsKey('error')) {
-        throw Exception(response['error']);
+      if (res.containsKey('error')) throw Exception(res['error']);
+
+      final paymentUrl = res['payment_url'];
+      if (paymentUrl == null || (paymentUrl as String).isEmpty) {
+        throw Exception('No payment URL received');
       }
 
-      final paymentUrl = response['payment_url'];
+      cartProvider.clearCart();
 
-      if (paymentUrl != null && paymentUrl.isNotEmpty) {
-        cartProvider.clearCart();
-        
-        if (mounted) {
-          setState(() => _isProcessingPayment = false);
-          
-          print('🔗 Opening payment URL: $paymentUrl');
-          
-          final uri = Uri.parse(paymentUrl);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-            Navigator.pushNamedAndRemoveUntil(context, '/orders', (route) => false);
-          } else {
-            throw Exception('Could not open payment page');
-          }
+      if (mounted) {
+        setState(() => _isProcessingPayment = false);
+        final ok = await launchUrl(
+          Uri.parse(paymentUrl),
+          mode: LaunchMode.externalApplication,
+        );
+        if (!ok && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open the payment page')),
+          );
         }
-      } else {
-        throw Exception('No payment URL received from server');
+        Navigator.pushNamedAndRemoveUntil(context, '/orders', (route) => false);
       }
-
     } catch (e) {
-      print('❌ Payment initiation error: $e');
+      print('[PAY] Error: $e');
       if (mounted) {
         setState(() {
           _isProcessingPayment = false;
           _isSubmitting = false;
         });
-        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Payment error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
+              content: Text('❌ Payment error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5)),
         );
       }
     }

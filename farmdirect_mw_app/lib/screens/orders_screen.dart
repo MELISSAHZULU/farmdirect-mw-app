@@ -14,7 +14,7 @@ class OrdersScreen extends StatefulWidget {
   State<OrdersScreen> createState() => _OrdersScreenState();
 }
 
-class _OrdersScreenState extends State<OrdersScreen> {
+class _OrdersScreenState extends State<OrdersScreen> with WidgetsBindingObserver {
   List<Order> _orders = [];
   bool _isLoading = true;
   String _error = '';
@@ -23,13 +23,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadOrders();
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _loadOrders();
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Refresh when the customer comes back from the browser after payment
+    if (state == AppLifecycleState.resumed) {
+      _loadOrders();
+    }
   }
 
   Future<void> _loadOrders() async {
@@ -434,8 +443,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     });
 
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    
-    // Show loading snackbar
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('🔄 Adding items to cart...'),
@@ -449,10 +457,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     for (var item in order.items) {
       try {
-        // Fetch the full product details
         final product = await ApiService.getProduct(item.productId);
-        
-        // Add to cart with the quantity from the order
         cartProvider.addItem(
           product,
           quantity: item.quantity.toInt(),
@@ -478,7 +483,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
             duration: const Duration(seconds: 2),
           ),
         );
-        // Navigate to cart
         Navigator.pushNamed(context, '/cart');
       } else if (addedCount > 0 && failedCount > 0) {
         ScaffoldMessenger.of(context).showSnackBar(

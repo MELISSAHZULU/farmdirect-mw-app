@@ -128,7 +128,7 @@ if DATABASE_URL:
             ssl_require=True
         )
     }
-    print(f"[DB] Using PostgreSQL database: {DATABASE_URL[:50]}...")
+    print("[DB] Database: PostgreSQL")
 else:
     DATABASES = {
         'default': {
