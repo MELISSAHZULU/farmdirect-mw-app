@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -o errexit
 echo "=========================================="
 echo "FarmDirect MW - Render Build Script"
 echo "=========================================="
