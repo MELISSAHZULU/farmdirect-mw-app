@@ -4,14 +4,50 @@ import hmac
 import hashlib
 import json
 import requests
+from collections import defaultdict
+
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse, HttpResponse
+
 from .models import Order, OrderItem
 from .serializers import OrderSerializer, OrderCreateSerializer
+
+
+# ============ SMS HELPER ============
+def _dispatch_farmer_sms(order):
+    """
+    Group order items by farmer and send each farmer one SMS.
+    Idempotent: only sends if a flag on the order allows it.
+
+    We use `payment_status` as the guard for COD orders, and the
+    `status` field for PayChangu orders (which are set to 'confirmed'
+    only after payment verifies). This function is safe to call
+    multiple times - it will only fire SMS once per order.
+    """
+    try:
+        # Lazy import so a missing africastalking install doesn't break the app
+        from .sms_service import send_farmer_order_notification
+    except ImportError as e:
+        print(f"[SMS] sms_service not available: {e}")
+        return
+
+    items_by_farmer = defaultdict(list)
+    for item in order.items.select_related('product', 'farmer').all():
+        if item.farmer:
+            items_by_farmer[item.farmer].append(item)
+
+    for farmer, farmer_items in items_by_farmer.items():
+        if farmer and farmer.contact_phone:
+            try:
+                result = send_farmer_order_notification(farmer, order, farmer_items)
+                print(f"[SMS] Farmer {farmer.name}: {result}")
+            except Exception as e:
+                print(f"[SMS] Failed to notify {farmer.name}: {e}")
+
 
 # ============ ORDER LIST VIEW ============
 class OrderListView(generics.ListAPIView):
@@ -30,7 +66,12 @@ class OrderCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(customer=self.request.user)
+        order = serializer.save(customer=self.request.user)
+
+        # For Cash on Delivery, notify farmers immediately.
+        # For PayChangu, wait until the webhook / return page confirms payment.
+        if order.payment_method == 'cash_on_delivery':
+            _dispatch_farmer_sms(order)
 
     def create(self, request, *args, **kwargs):
         print(f"[ORDER] Received order data: {request.data}")
@@ -246,10 +287,16 @@ def payment_webhook(request):
             return HttpResponse('Amount mismatch', status=400)
 
         if verified_status == 'success':
+            already_paid = order.payment_status == 'paid'
+
             order.payment_status = 'paid'
             order.status = 'confirmed'
             order.save()
             print(f'[WEBHOOK] Order {order.order_number} confirmed')
+
+            # Only send SMS the first time we transition to paid.
+            if not already_paid:
+                _dispatch_farmer_sms(order)
         else:
             print(f'[WEBHOOK] Unhandled status: {verified_status}')
 
@@ -290,11 +337,17 @@ def payment_return(request):
                     order_number = tx_ref.rsplit('-', 1)[0]
                     try:
                         order = Order.objects.get(order_number=order_number)
+                        already_paid = order.payment_status == 'paid'
+
                         order.payment_status = 'paid'
                         order.status = 'confirmed'
                         order.save()
                         paid = True
                         print(f'[RETURN] Order {order.order_number} confirmed via return page')
+
+                        # Backup SMS trigger if the webhook missed this order.
+                        if not already_paid:
+                            _dispatch_farmer_sms(order)
                     except Order.DoesNotExist:
                         print(f'[RETURN] Order not found: {order_number}')
         except Exception as e:
