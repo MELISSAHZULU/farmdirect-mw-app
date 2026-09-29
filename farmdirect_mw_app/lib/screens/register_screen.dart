@@ -21,6 +21,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _selectedArea;
   String _selectedLanguage = 'en';
 
+  // These MUST be class fields — not inside build()
   final List<String> areas = [
     'Area 3', 'Area 6', 'Area 9', 'Area 10', 'Area 11', 'Area 12',
     'Area 14', 'Area 15', 'Area 18', 'Area 25', 'Area 43', 'Area 44',
@@ -35,6 +36,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Account'),
@@ -92,9 +94,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     value: _selectedArea,
                     items: areas
-                        .map((area) => DropdownMenuItem(value: area, child: Text(area)))
+                        .map((area) =>
+                            DropdownMenuItem(value: area, child: Text(area)))
                         .toList(),
-                    onChanged: (value) => setState(() => _selectedArea = value),
+                    onChanged: (value) =>
+                        setState(() => _selectedArea = value),
                     validator: (value) =>
                         value == null ? 'Please select your area' : null,
                   ),
@@ -125,8 +129,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         icon: Icon(_obscurePassword
                             ? Icons.visibility
                             : Icons.visibility_off),
-                        onPressed: () =>
-                            setState(() => _obscurePassword = !_obscurePassword),
+                        onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword),
                       ),
                       border: const OutlineInputBorder(),
                     ),
@@ -175,7 +179,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   Navigator.pushReplacement(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => const HomeScreen(),
+                                      builder: (context) =>
+                                          const HomeScreen(),
                                     ),
                                   );
                                 } else {
@@ -198,7 +203,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ? const CircularProgressIndicator(color: Colors.white)
                           : const Text(
                               'Register',
-                              style: TextStyle(fontSize: 18, color: Colors.white),
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.white,
+                              ),
                             ),
                     ),
                   ),
