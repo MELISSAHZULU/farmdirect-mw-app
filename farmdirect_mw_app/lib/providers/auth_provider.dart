@@ -50,11 +50,23 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> register({required String phone, required String firstName, required String lastName, required String password, String? area}) async {
+  Future<bool> register({
+    required String phone,
+    required String firstName,
+    required String lastName,
+    required String password,
+    String? area,
+    String language = 'en',
+  }) async {
     _isLoading = true; notifyListeners();
     try {
       final response = await ApiService.register(
-        phone: phone, firstName: firstName, lastName: lastName, password: password, area: area
+        phone: phone,
+        firstName: firstName,
+        lastName: lastName,
+        password: password,
+        area: area,
+        language: language,
       );
       if (response.containsKey('access')) {
         _token = response['access'];

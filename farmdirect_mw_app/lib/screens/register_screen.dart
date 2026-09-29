@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import 'home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -18,30 +19,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
   String? _selectedArea;
-  bool _isLoading = false;
+  String _selectedLanguage = 'en';
 
   final List<String> areas = [
-    'Area 3',
-    'Area 6',
-    'Area 9',
-    'Area 10',
-    'Area 11',
-    'Area 12',
-    'Area 14',
-    'Area 15',
-    'Area 18',
-    'Area 25',
-    'Area 43',
-    'Area 44',
-    'Area 47',
-    'Area 49',
-    'Airwing',
-    'City Centre',
-    'Kanengo',
+    'Area 3', 'Area 6', 'Area 9', 'Area 10', 'Area 11', 'Area 12',
+    'Area 14', 'Area 15', 'Area 18', 'Area 25', 'Area 43', 'Area 44',
+    'Area 47', 'Area 49', 'Airwing', 'City Centre', 'Kanengo',
+  ];
+
+  final List<Map<String, String>> languages = [
+    {'code': 'en', 'label': 'English'},
+    {'code': 'ny', 'label': 'Chichewa'},
   ];
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Account'),
@@ -62,8 +55,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       labelText: 'First Name',
                       border: OutlineInputBorder(),
                     ),
-                    validator: (value) =>
-                        value == null || value.isEmpty ? 'Enter first name' : null,
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Please enter your first name'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -72,8 +66,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       labelText: 'Last Name',
                       border: OutlineInputBorder(),
                     ),
-                    validator: (value) =>
-                        value == null || value.isEmpty ? 'Enter last name' : null,
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Please enter your last name'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -84,24 +79,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.phone,
-                    validator: (value) =>
-                        value == null || value.isEmpty ? 'Enter phone number' : null,
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Please enter your phone number'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
                       labelText: 'Delivery Area',
                       border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.location_on),
                     ),
                     value: _selectedArea,
-                    items: areas.map((area) {
-                      return DropdownMenuItem(
-                        value: area,
-                        child: Text(area),
-                      );
-                    }).toList(),
+                    items: areas
+                        .map((area) => DropdownMenuItem(value: area, child: Text(area)))
+                        .toList(),
                     onChanged: (value) => setState(() => _selectedArea = value),
-                    validator: (value) => value == null ? 'Select your area' : null,
+                    validator: (value) =>
+                        value == null ? 'Please select your area' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'Preferred Language',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.language),
+                    ),
+                    value: _selectedLanguage,
+                    items: languages
+                        .map((lang) => DropdownMenuItem(
+                              value: lang['code'],
+                              child: Text(lang['label']!),
+                            ))
+                        .toList(),
+                    onChanged: (value) =>
+                        setState(() => _selectedLanguage = value ?? 'en'),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -110,9 +122,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock),
                       suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                        ),
+                        icon: Icon(_obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off),
                         onPressed: () =>
                             setState(() => _obscurePassword = !_obscurePassword),
                       ),
@@ -120,8 +132,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     obscureText: _obscurePassword,
                     validator: (value) {
-                      if (value == null || value.isEmpty) return 'Enter password';
-                      if (value.length < 8) return 'Minimum 8 characters';
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a password';
+                      }
+                      if (value.length < 6) {
+                        return 'Password must be at least 6 characters';
+                      }
                       return null;
                     },
                   ),
@@ -134,22 +150,51 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       border: OutlineInputBorder(),
                     ),
                     obscureText: true,
-                    validator: (value) =>
-                        value != _passwordController.text ? 'Passwords do not match' : null,
+                    validator: (value) => value != _passwordController.text
+                        ? 'Passwords do not match'
+                        : null,
                   ),
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _register,
+                      onPressed: authProvider.isLoading
+                          ? null
+                          : () async {
+                              if (_formKey.currentState!.validate()) {
+                                final success = await authProvider.register(
+                                  phone: _phoneController.text,
+                                  firstName: _firstNameController.text,
+                                  lastName: _lastNameController.text,
+                                  password: _passwordController.text,
+                                  area: _selectedArea,
+                                  language: _selectedLanguage,
+                                );
+                                if (success && mounted) {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const HomeScreen(),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Registration failed'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF2E7D32),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: _isLoading
+                      child: authProvider.isLoading
                           ? const CircularProgressIndicator(color: Colors.white)
                           : const Text(
                               'Register',
@@ -164,33 +209,5 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _register() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.register(
-      phone: _phoneController.text,
-      firstName: _firstNameController.text,
-      lastName: _lastNameController.text,
-      password: _passwordController.text,
-      area: _selectedArea,
-    );
-
-    setState(() => _isLoading = false);
-
-    if (success && mounted) {
-      Navigator.pushReplacementNamed(context, '/home');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registration failed. Try again.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
   }
 }

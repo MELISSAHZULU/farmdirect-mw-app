@@ -1,3 +1,4 @@
+// lib/models/user.dart
 class User {
   final int id;
   final String phone;
@@ -6,6 +7,7 @@ class User {
   final String? email;
   final String? area;
   final String? role;
+  final String language;
 
   User({
     required this.id,
@@ -15,6 +17,7 @@ class User {
     this.email,
     this.area,
     this.role,
+    this.language = 'en',
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -26,6 +29,7 @@ class User {
       email: json['email'],
       area: json['area'],
       role: json['role'],
+      language: json['language'] ?? 'en',
     );
   }
 
@@ -38,6 +42,7 @@ class User {
       'email': email,
       'area': area,
       'role': role,
+      'language': language,
     };
   }
 }

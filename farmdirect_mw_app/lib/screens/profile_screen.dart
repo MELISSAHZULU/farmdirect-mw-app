@@ -30,9 +30,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final orders = await ApiService.getOrders();
 
       // Only count delivered orders as "money spent"
-      final deliveredOrders = orders
-          .where((order) => order.status == 'delivered')
-          .toList();
+      final deliveredOrders =
+          orders.where((order) => order.status == 'delivered').toList();
 
       setState(() {
         _orders = orders;
@@ -54,10 +53,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final favoritesProvider = Provider.of<FavoritesProvider>(context);
     final user = authProvider.user;
 
-    // Count active orders (not delivered or cancelled)
-    int activeOrders = _orders.where((order) =>
-      order.status != 'delivered' && order.status != 'cancelled'
-    ).length;
+    int activeOrders = _orders
+        .where((order) =>
+            order.status != 'delivered' && order.status != 'cancelled')
+        .length;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -95,7 +94,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2E7D32)),
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Color(0xFF2E7D32)),
                       ),
                       SizedBox(height: 16),
                       Text('Loading your data...'),
@@ -106,7 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.only(bottom: 24),
                   child: Column(
                     children: [
-                      // Profile Header Card
+                      // Profile Header
                       Container(
                         margin: const EdgeInsets.all(16),
                         padding: const EdgeInsets.all(20),
@@ -114,10 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           gradient: const LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFF2E7D32),
-                              Color(0xFF43A047),
-                            ],
+                            colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
                           ),
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
@@ -130,7 +127,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         child: Row(
                           children: [
-                            // Avatar
                             Container(
                               width: 70,
                               height: 70,
@@ -172,36 +168,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   const SizedBox(height: 4),
                                   Row(
                                     children: [
-                                      const Icon(
-                                        Icons.phone,
-                                        size: 14,
-                                        color: Colors.white70,
-                                      ),
+                                      const Icon(Icons.phone,
+                                          size: 14, color: Colors.white70),
                                       const SizedBox(width: 4),
                                       Text(
                                         user.phone,
                                         style: const TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.white70,
-                                        ),
+                                            fontSize: 14,
+                                            color: Colors.white70),
                                       ),
                                     ],
                                   ),
                                   const SizedBox(height: 2),
                                   Row(
                                     children: [
-                                      const Icon(
-                                        Icons.location_on,
-                                        size: 14,
-                                        color: Colors.white70,
-                                      ),
+                                      const Icon(Icons.location_on,
+                                          size: 14, color: Colors.white70),
                                       const SizedBox(width: 4),
                                       Text(
                                         user.area ?? 'No area set',
                                         style: const TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.white70,
-                                        ),
+                                            fontSize: 14,
+                                            color: Colors.white70),
                                       ),
                                     ],
                                   ),
@@ -212,7 +200,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
 
-                      // Stats Row - Dynamic from backend
+                      // Stats Row
                       Container(
                         margin: const EdgeInsets.symmetric(horizontal: 16),
                         padding: const EdgeInsets.all(16),
@@ -230,28 +218,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
+                            _buildStatItem(Icons.shopping_bag_outlined,
+                                '$_totalOrders', 'Orders'),
                             _buildStatItem(
-                              Icons.shopping_bag_outlined,
-                              '$_totalOrders',
-                              'Orders',
-                            ),
-                            _buildStatItem(
-                              Icons.money,
-                              'K${_totalSpent.toInt()}',
-                              'Spent',
-                            ),
-                            _buildStatItem(
-                              Icons.agriculture,
-                              '4',
-                              'Farms',
-                            ),
+                                Icons.money, 'K${_totalSpent.toInt()}', 'Spent'),
+                            _buildStatItem(Icons.agriculture, '4', 'Farms'),
                           ],
                         ),
                       ),
 
                       const SizedBox(height: 16),
 
-                      // My Orders Section - Connected to Orders Screen
                       _buildSectionHeader(
                         'My Orders',
                         activeOrders > 0 ? '$activeOrders Active' : '',
@@ -259,12 +236,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildMenuItem(
                         icon: Icons.list_alt,
                         title: 'Order History',
-                        subtitle: '${_totalOrders} orders placed',
+                        subtitle: '$_totalOrders orders placed',
                         onTap: () => Navigator.pushNamed(context, '/orders'),
                       ),
                       const SizedBox(height: 8),
 
-                      // Account Settings Section
                       _buildSectionHeader('Account Settings', ''),
                       _buildMenuItem(
                         icon: Icons.location_on_outlined,
@@ -283,48 +259,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: Icons.favorite_border,
                         title: 'Favorites',
                         subtitle: '${favoritesProvider.count} items',
-                        onTap: () => Navigator.pushNamed(context, '/favorites'),
+                        onTap: () =>
+                            Navigator.pushNamed(context, '/favorites'),
                       ),
                       const SizedBox(height: 8),
 
-                      // Preferences Section
-                      _buildSectionHeader('Preferences', ''),
-                      _buildMenuItem(
-                        icon: Icons.notifications_outlined,
-                        title: 'Notifications',
-                        trailing: Switch(
-                          value: true,
-                          onChanged: (value) {},
-                          activeColor: const Color(0xFF2E7D32),
-                        ),
-                        onTap: null,
-                      ),
-                      _buildMenuItem(
-                        icon: Icons.language,
-                        title: 'Language',
-                        subtitle: 'English',
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Language settings coming soon!'),
-                              backgroundColor: Color(0xFF2E7D32),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Support Section
                       _buildSectionHeader('Support', ''),
                       _buildMenuItem(
                         icon: Icons.help_outline,
                         title: 'Help & Support',
                         subtitle: 'FAQs, contact us',
-                        onTap: () => Navigator.pushNamed(context, '/help-support'),
+                        onTap: () =>
+                            Navigator.pushNamed(context, '/help-support'),
                       ),
                       const SizedBox(height: 24),
 
-                      // Logout Button
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: SizedBox(
@@ -334,11 +283,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onPressed: () async {
                               await authProvider.logout();
                               if (context.mounted) {
-                                Navigator.pushReplacementNamed(context, '/login');
+                                Navigator.pushReplacementNamed(
+                                    context, '/login');
                               }
                             },
                             style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.red, width: 1.5),
+                              side: const BorderSide(
+                                  color: Colors.red, width: 1.5),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -375,10 +326,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[500],
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.grey[500]),
         ),
       ],
     );
@@ -424,33 +372,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Material(
         color: Colors.transparent,
         child: ListTile(
-          leading: Icon(
-            icon,
-            color: const Color(0xFF2E7D32),
-            size: 22,
-          ),
+          leading: Icon(icon, color: const Color(0xFF2E7D32), size: 22),
           title: Text(
             title,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
           ),
           subtitle: subtitle != null
               ? Text(
                   subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[500],
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[500]),
                 )
               : null,
-          trailing: trailing ?? (onTap != null ? const Icon(Icons.chevron_right) : null),
+          trailing: trailing ??
+              (onTap != null ? const Icon(Icons.chevron_right) : null),
           onTap: onTap,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           tileColor: Colors.white,
         ),
       ),

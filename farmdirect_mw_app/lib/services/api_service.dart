@@ -32,6 +32,7 @@ class ApiService {
     required String lastName,
     required String password,
     String? area,
+    String language = 'en',
   }) async {
     try {
       final response = await http.post(
@@ -44,6 +45,7 @@ class ApiService {
           'password': password,
           'area': area,
           'role': 'customer',
+          'language': language,
         }),
       );
 
