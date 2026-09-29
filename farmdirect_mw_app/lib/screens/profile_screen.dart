@@ -28,10 +28,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isLoading = true);
     try {
       final orders = await ApiService.getOrders();
+
+      // Only count delivered orders as "money spent"
+      final deliveredOrders = orders
+          .where((order) => order.status == 'delivered')
+          .toList();
+
       setState(() {
         _orders = orders;
         _totalOrders = orders.length;
-        _totalSpent = orders.fold(0.0, (sum, order) => sum + order.totalAmount);
+        _totalSpent = deliveredOrders.fold(
+          0.0,
+          (sum, order) => sum + order.totalAmount,
+        );
         _isLoading = false;
       });
     } catch (e) {
@@ -46,7 +55,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = authProvider.user;
 
     // Count active orders (not delivered or cancelled)
-    int activeOrders = _orders.where((order) => 
+    int activeOrders = _orders.where((order) =>
       order.status != 'delivered' && order.status != 'cancelled'
     ).length;
 
@@ -244,7 +253,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       // My Orders Section - Connected to Orders Screen
                       _buildSectionHeader(
-                        'My Orders', 
+                        'My Orders',
                         activeOrders > 0 ? '$activeOrders Active' : '',
                       ),
                       _buildMenuItem(
